@@ -1469,6 +1469,7 @@
     if (code === 'auth/invalid-email') return 'E-mail inválido.';
     if (code === 'auth/weak-password') return 'Senha muito curta (mínimo 6 caracteres).';
     if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') return '';
+    if (code === 'auth/popup-blocked') return 'O navegador bloqueou a janela de login. Permita pop-ups para este site e tente de novo.';
     return 'Não foi possível entrar. Tente novamente.';
   }
   function showAuthGateError(err) {
@@ -1504,10 +1505,26 @@
     authEmailForm.classList.toggle('open');
   });
   document.getElementById('auth-google-btn').addEventListener('click', () => {
+    // Popup em vez de redirect: o login com Google precisa passar informação
+    // entre o domínio do app e o domínio do Firebase (viagem-63f1b.firebaseapp.com),
+    // e navegadores modernos vêm bloqueando cada vez mais essa troca via
+    // redirecionamento (cookies/armazenamento "de terceiros"). O popup evita
+    // isso, mas não funciona quando o app está instalado na tela de início —
+    // nesse caso, o e-mail/senha continua sendo a opção confiável.
     const provider = new firebase.auth.GoogleAuthProvider();
     const current = firebase.auth().currentUser;
-    const action = (current && current.isAnonymous) ? current.linkWithRedirect(provider) : firebase.auth().signInWithRedirect(provider);
-    action.catch(showAuthGateError);
+    const action = (current && current.isAnonymous) ? current.linkWithPopup(provider) : firebase.auth().signInWithPopup(provider);
+    action.then((result) => {
+      if (result && result.user) handleAuthenticatedUser(result.user);
+    }).catch((err) => {
+      if (err && err.code === 'auth/credential-already-in-use' && err.credential) {
+        firebase.auth().signInWithCredential(err.credential).then((result) => {
+          if (result && result.user) handleAuthenticatedUser(result.user);
+        }).catch(showAuthGateError);
+      } else {
+        showAuthGateError(err);
+      }
+    });
   });
   authEmailForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1648,46 +1665,11 @@
     } catch (e) {}
     const el = syncStatusEl();
 
-    // signInAnonymously() só é chamado depois de um pequeno atraso (ver
-    // noUserTimer abaixo), nunca na hora em que vemos "sem usuário". Um
-    // login com Google via redirect passa por um estado transitório onde o
-    // Firebase ainda não terminou de processar a "promoção" da conta
-    // anônima pra conta real — se disparássemos o login anônimo de reserva
-    // nesse instante, ele poderia terminar DEPOIS do login real e
-    // sobrescrever a sessão, "deslogando" quem acabou de entrar (sintoma:
-    // a página aparece logada por um instante e depois volta sozinha pra
-    // tela de login).
-    function ensureSignedIn() {
-      if (!firebase.auth().currentUser) {
+    firebase.auth().onAuthStateChanged((user) => {
+      if (!user) {
         firebase.auth().signInAnonymously().catch(() => {
           if (el) el.textContent = '⚠️ sincronização indisponível';
         });
-      }
-    }
-
-    firebase.auth().getRedirectResult().then((result) => {
-      if (result && result.user && !result.user.isAnonymous) handleAuthenticatedUser(result.user);
-    }).catch((err) => {
-      if (err && err.code === 'auth/credential-already-in-use' && err.credential) {
-        firebase.auth().signInWithCredential(err.credential).then((result) => {
-          if (result && result.user) handleAuthenticatedUser(result.user);
-        }).catch(showAuthGateError);
-      } else if (err && err.code !== 'auth/no-auth-event') {
-        showAuthGateError(err);
-      }
-    });
-
-    let noUserTimer = null;
-    firebase.auth().onAuthStateChanged((user) => {
-      clearTimeout(noUserTimer);
-      if (!user) {
-        // Espera um instante — pode ser um estado transitório no meio de um
-        // login com Google ainda sendo processado, não necessariamente
-        // "ninguém logado". Se um usuário real chegar antes do tempo
-        // esgotar, o clearTimeout acima cancela esta ação.
-        noUserTimer = setTimeout(() => {
-          if (!firebase.auth().currentUser) ensureSignedIn();
-        }, 1200);
         return;
       }
       if (user.isAnonymous) {
