@@ -1648,14 +1648,15 @@
     } catch (e) {}
     const el = syncStatusEl();
 
-    // Só chama signInAnonymously() depois que getRedirectResult() já resolveu
-    // pela primeira vez. Chamar antes disso cria uma corrida: se o login
-    // anônimo terminar DEPOIS do login real (Google), ele sobrescreve a
-    // sessão e "desloga" o usuário que acabou de entrar — sintoma: a página
-    // aparece logada por um instante e depois volta sozinha pra tela de
-    // login. Depois do boot inicial (ex: signOut manual em "Tentar outra
-    // conta"), não há mais redirect pendente, então pode agir na hora.
-    let redirectChecked = false;
+    // signInAnonymously() só é chamado depois de um pequeno atraso (ver
+    // noUserTimer abaixo), nunca na hora em que vemos "sem usuário". Um
+    // login com Google via redirect passa por um estado transitório onde o
+    // Firebase ainda não terminou de processar a "promoção" da conta
+    // anônima pra conta real — se disparássemos o login anônimo de reserva
+    // nesse instante, ele poderia terminar DEPOIS do login real e
+    // sobrescrever a sessão, "deslogando" quem acabou de entrar (sintoma:
+    // a página aparece logada por um instante e depois volta sozinha pra
+    // tela de login).
     function ensureSignedIn() {
       if (!firebase.auth().currentUser) {
         firebase.auth().signInAnonymously().catch(() => {
@@ -1665,27 +1666,28 @@
     }
 
     firebase.auth().getRedirectResult().then((result) => {
-      redirectChecked = true;
-      if (result && result.user && !result.user.isAnonymous) {
-        handleAuthenticatedUser(result.user);
-      } else {
-        ensureSignedIn();
-      }
+      if (result && result.user && !result.user.isAnonymous) handleAuthenticatedUser(result.user);
     }).catch((err) => {
-      redirectChecked = true;
       if (err && err.code === 'auth/credential-already-in-use' && err.credential) {
         firebase.auth().signInWithCredential(err.credential).then((result) => {
           if (result && result.user) handleAuthenticatedUser(result.user);
         }).catch(showAuthGateError);
-      } else {
-        if (err && err.code !== 'auth/no-auth-event') showAuthGateError(err);
-        ensureSignedIn();
+      } else if (err && err.code !== 'auth/no-auth-event') {
+        showAuthGateError(err);
       }
     });
 
+    let noUserTimer = null;
     firebase.auth().onAuthStateChanged((user) => {
+      clearTimeout(noUserTimer);
       if (!user) {
-        if (redirectChecked) ensureSignedIn();
+        // Espera um instante — pode ser um estado transitório no meio de um
+        // login com Google ainda sendo processado, não necessariamente
+        // "ninguém logado". Se um usuário real chegar antes do tempo
+        // esgotar, o clearTimeout acima cancela esta ação.
+        noUserTimer = setTimeout(() => {
+          if (!firebase.auth().currentUser) ensureSignedIn();
+        }, 1200);
         return;
       }
       if (user.isAnonymous) {
