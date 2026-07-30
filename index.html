@@ -1648,23 +1648,44 @@
     } catch (e) {}
     const el = syncStatusEl();
 
+    // Só chama signInAnonymously() depois que getRedirectResult() já resolveu
+    // pela primeira vez. Chamar antes disso cria uma corrida: se o login
+    // anônimo terminar DEPOIS do login real (Google), ele sobrescreve a
+    // sessão e "desloga" o usuário que acabou de entrar — sintoma: a página
+    // aparece logada por um instante e depois volta sozinha pra tela de
+    // login. Depois do boot inicial (ex: signOut manual em "Tentar outra
+    // conta"), não há mais redirect pendente, então pode agir na hora.
+    let redirectChecked = false;
+    function ensureSignedIn() {
+      if (!firebase.auth().currentUser) {
+        firebase.auth().signInAnonymously().catch(() => {
+          if (el) el.textContent = '⚠️ sincronização indisponível';
+        });
+      }
+    }
+
     firebase.auth().getRedirectResult().then((result) => {
-      if (result && result.user && !result.user.isAnonymous) handleAuthenticatedUser(result.user);
+      redirectChecked = true;
+      if (result && result.user && !result.user.isAnonymous) {
+        handleAuthenticatedUser(result.user);
+      } else {
+        ensureSignedIn();
+      }
     }).catch((err) => {
+      redirectChecked = true;
       if (err && err.code === 'auth/credential-already-in-use' && err.credential) {
         firebase.auth().signInWithCredential(err.credential).then((result) => {
           if (result && result.user) handleAuthenticatedUser(result.user);
         }).catch(showAuthGateError);
-      } else if (err && err.code !== 'auth/no-auth-event') {
-        showAuthGateError(err);
+      } else {
+        if (err && err.code !== 'auth/no-auth-event') showAuthGateError(err);
+        ensureSignedIn();
       }
     });
 
     firebase.auth().onAuthStateChanged((user) => {
       if (!user) {
-        firebase.auth().signInAnonymously().catch(() => {
-          if (el) el.textContent = '⚠️ sincronização indisponível';
-        });
+        if (redirectChecked) ensureSignedIn();
         return;
       }
       if (user.isAnonymous) {
