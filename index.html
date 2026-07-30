@@ -258,6 +258,30 @@
   }
   .trip-code-join button:active { transform: scale(0.96); opacity: .85; }
 
+  /* ---------------- Conta logada / sair ---------------- */
+  .account-logout-panel {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed rgba(255,255,255,.14);
+  }
+  .account-logout-panel.open { display: flex; }
+  #account-logout-email { font-size: 11px; color: #b7bfd8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #account-logout-btn {
+    flex: none;
+    background: rgba(255,255,255,.08);
+    color: #ffb199;
+    border: 1px solid rgba(255,122,61,.35);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
   /* ---------------- Painel do dono: autorizar/remover e-mails ---------------- */
   .owner-authorize-panel {
     display: none;
@@ -871,6 +895,10 @@
           <input type="text" id="join-trip-code-input" placeholder="Colar código recebido">
           <button type="button" id="join-trip-code-btn">Entrar</button>
         </div>
+        <div class="account-logout-panel" id="account-logout-panel">
+          <span id="account-logout-email"></span>
+          <button type="button" id="account-logout-btn">🚪 Sair</button>
+        </div>
         <div class="owner-authorize-panel" id="owner-authorize-panel">
           <p class="owner-authorize-hint">Só e-mails autorizados aqui conseguem abrir esta viagem.</p>
           <div class="owner-authorize-form">
@@ -1454,6 +1482,7 @@
   function showAuthGate() {
     if (authGateOverlay) authGateOverlay.classList.add('open');
     if (authDeniedOverlay) authDeniedOverlay.classList.remove('open');
+    setAccountPanelVisible(null);
   }
   function hideAuthGate() { if (authGateOverlay) authGateOverlay.classList.remove('open'); }
   function showAuthDenied(email) {
@@ -1462,6 +1491,22 @@
     if (authGateOverlay) authGateOverlay.classList.remove('open');
   }
   function hideAuthDenied() { if (authDeniedOverlay) authDeniedOverlay.classList.remove('open'); }
+
+  function setAccountPanelVisible(email) {
+    const panel = document.getElementById('account-logout-panel');
+    const emailEl = document.getElementById('account-logout-email');
+    if (!panel) return;
+    if (email) {
+      if (emailEl) emailEl.textContent = email;
+      panel.classList.add('open');
+    } else {
+      panel.classList.remove('open');
+    }
+  }
+  document.getElementById('account-logout-btn').addEventListener('click', () => {
+    detachTripSync();
+    firebase.auth().signOut();
+  });
 
   function translateAuthError(err) {
     const code = err && err.code;
@@ -1649,6 +1694,7 @@
   // (a conta anônima é "promovida" no lugar, sem novo evento de mudança).
   function handleAuthenticatedUser(user) {
     hideAuthGate();
+    setAccountPanelVisible(user.email);
     claimOwnershipAndAuthorize(user).then(({ isOwner }) => {
       setOwnerPanelVisible(isOwner);
       attachTripSync(syncStatusEl());
