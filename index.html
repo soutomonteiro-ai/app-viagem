@@ -1,0 +1,2479 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Meu App de Viagem</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Viagem">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#131b2e">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+<link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<style>
+  :root {
+    --bg: #eef1f8;
+    --card: #ffffff;
+    --card2: #f4f6fc;
+    --accent: #ff7a3d;
+    --accent2: #0f9b8e;
+    --danger: #e0455f;
+    --text: #212a3d;
+    --muted: #6b7385;
+    --border: #e3e7f1;
+    --chip-bg: #e6f7f4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #13151d;
+      --card: #1c1f2a;
+      --card2: #262a37;
+      --accent: #ff8a52;
+      --accent2: #17b8a8;
+      --danger: #ff6b81;
+      --text: #e9ecf5;
+      --muted: #9099b3;
+      --border: #333849;
+      --chip-bg: rgba(23,184,168,.16);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ---------------- Sidebar ---------------- */
+  .sidebar {
+    width: 250px;
+    flex: none;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    color: #f2f4fb;
+    display: flex;
+    flex-direction: column;
+    padding: calc(22px + env(safe-area-inset-top)) 16px 22px calc(16px + env(safe-area-inset-left));
+  }
+  .sidebar-hero {
+    position: relative;
+    padding: 0 0 16px;
+    margin-bottom: 16px;
+  }
+  .hero-photo-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(10,16,32,.55);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,.3);
+    border-radius: 8px;
+    padding: 4px 8px;
+    font-size: 11px;
+    cursor: pointer;
+    z-index: 2;
+    transition: transform .1s ease, opacity .1s ease, background .15s;
+  }
+  .hero-photo-btn:hover { background: rgba(10,16,32,.8); }
+  .sidebar-hero input.title-input {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 19px;
+    font-weight: 800;
+    width: 100%;
+    padding: 2px 0;
+    border-bottom: 1px dashed rgba(255,255,255,.35);
+  }
+  .sidebar-hero input.subtitle-input {
+    background: transparent;
+    border: none;
+    color: #dbe1f5;
+    font-size: 12px;
+    width: 100%;
+    padding: 4px 0 0;
+    margin-top: 4px;
+  }
+  .sidebar-hero input::placeholder { color: rgba(255,255,255,.6); }
+  .sidebar-hero .countdown {
+    display: inline-block;
+    margin-top: 12px;
+    background: var(--accent);
+    color: #1a1204;
+    font-weight: 700;
+    font-size: 11px;
+    padding: 6px 12px;
+    border-radius: 999px;
+  }
+  .sync-status {
+    margin-top: 8px;
+    font-size: 10px;
+    color: #b7c0da;
+  }
+  .landmark-strip {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 18px;
+  }
+  .landmark-strip img {
+    width: 100%;
+    height: 46px;
+    object-fit: cover;
+    border-radius: 8px;
+    opacity: .9;
+  }
+  .sidebar nav {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+  }
+  .sidebar nav button {
+    text-align: left;
+    background: rgba(255,255,255,.06);
+    color: #c7cee4;
+    border: 1px solid rgba(255,255,255,.08);
+    padding: 11px 14px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    cursor: pointer;
+    transition: background .15s, transform .1s ease, opacity .1s ease;
+  }
+  .sidebar nav button:hover { background: rgba(255,255,255,.12); }
+  .sidebar nav button.active {
+    background: var(--accent);
+    color: #1a1204;
+    border-color: var(--accent);
+    font-weight: 700;
+  }
+  .sidebar-footer {
+    font-size: 10px;
+    color: #7c86a5;
+    text-align: center;
+    margin-top: 14px;
+  }
+  .trip-code-box {
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 12px;
+    padding: 12px;
+    text-align: left;
+    margin-top: 14px;
+  }
+  .trip-code-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: #8b93ac;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .trip-code-value {
+    font-family: monospace;
+    font-size: 14px;
+    color: #f2f4fb;
+    font-weight: 700;
+    letter-spacing: .03em;
+  }
+  .trip-code-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    cursor: pointer;
+  }
+  .trip-code-arrow {
+    flex: none;
+    color: #dbe1f5;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1;
+    padding: 4px 6px;
+    transition: transform .2s ease;
+  }
+  .trip-code-arrow.open { transform: rotate(180deg); }
+  .trip-code-collapsible { display: none; margin-top: 12px; }
+  .trip-code-collapsible.open { display: block; }
+  .trip-footer-actions { display: flex; flex-direction: column; gap: 6px; }
+  .trip-footer-actions button {
+    background: rgba(255,255,255,.08);
+    color: #dbe1f5;
+    border: 1px solid rgba(255,255,255,.14);
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+    transition: background .15s, transform .1s ease, opacity .1s ease;
+  }
+  .trip-footer-actions button:hover { background: rgba(255,255,255,.14); }
+  .trip-footer-actions button.new-trip-btn { color: #ffb199; border-color: rgba(255,122,61,.35); }
+  .trip-code-join {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed rgba(255,255,255,.14);
+  }
+  .trip-code-join input {
+    flex: 1;
+    min-width: 0;
+    background: rgba(255,255,255,.08);
+    color: #f2f4fb;
+    border: 1px solid rgba(255,255,255,.14);
+    border-radius: 8px;
+    padding: 7px 8px;
+    font-size: 11.5px;
+  }
+  .trip-code-join input::placeholder { color: #8b93ac; }
+  .trip-code-join button {
+    flex: none;
+    background: var(--accent2);
+    color: #fff;
+    border: 1px solid var(--accent2);
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 11.5px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform .1s ease, opacity .1s ease;
+  }
+  .trip-code-join button:active { transform: scale(0.96); opacity: .85; }
+
+  /* ---------------- Modal de confirmação (substitui o confirm() nativo) ---------------- */
+  #confirm-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(10,14,26,.55);
+    z-index: 1100;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  #confirm-modal-overlay.open { display: flex; }
+  #confirm-modal-box {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 20px;
+    max-width: 340px;
+    width: 100%;
+    box-shadow: 0 10px 40px rgba(0,0,0,.3);
+  }
+  #confirm-modal-message {
+    margin: 0 0 18px;
+    font-size: 14.5px;
+    color: var(--text);
+    line-height: 1.5;
+    white-space: pre-line;
+  }
+  #confirm-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  #trips-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(10,14,26,.55);
+    z-index: 1100;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  #trips-modal-overlay.open { display: flex; }
+  #trips-modal-box {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 20px;
+    max-width: 380px;
+    width: 100%;
+    box-shadow: 0 10px 40px rgba(0,0,0,.3);
+  }
+  #trips-modal-box h3 { margin: 0 0 4px; font-size: 15px; color: var(--text); }
+  .trips-modal-hint { margin: 0 0 14px; font-size: 12px; color: var(--muted); }
+  #trips-modal-list { max-height: 45vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+  .trips-modal-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 9px 12px;
+  }
+  .trips-modal-item.current { border-color: var(--accent2); }
+  .trips-modal-item-title { font-size: 13px; font-weight: 700; color: var(--text); }
+  .trips-modal-item-code { font-size: 11px; font-family: monospace; color: var(--muted); margin-top: 2px; }
+  .trips-modal-current-badge {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--accent2);
+    background: var(--chip-bg);
+    padding: 3px 9px;
+    border-radius: 999px;
+    flex: none;
+  }
+  .sidebar {
+    background:
+      linear-gradient(180deg, rgba(10,16,32,.55), rgba(19,27,46,.92) 55%, #131b2e 100%),
+      url('https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=600&q=70') center/cover;
+  }
+
+  /* ---------------- Main content ---------------- */
+  main {
+    flex: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 30px 28px 60px;
+    min-width: 0;
+  }
+  .tab { display: none; }
+  .tab.active { display: block; animation: fadeIn .25s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px);} to { opacity:1; transform:none; } }
+
+  .app-credit {
+    font-family: 'Poppins', -apple-system, sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: .02em;
+    text-align: center;
+    color: var(--accent2);
+    opacity: .8;
+    margin: 36px 0 4px;
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 10px rgba(30,40,70,.05);
+  }
+  .card h3 { margin: 0 0 12px; font-size: 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; color: var(--text); }
+  .card h3 .badge {
+    background: var(--card2);
+    color: var(--accent2);
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-weight: 700;
+  }
+  .row { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; font-size: 14px; border-bottom: 1px dashed var(--border); }
+  .row:last-child { border-bottom: none; }
+  .row .label { color: var(--muted); }
+  .flight-leg { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; }
+  .flight-leg .pt { text-align: center; }
+  .flight-leg .pt .code { font-size: 20px; font-weight: 800; color: var(--text); }
+  .flight-leg .pt .time { font-size: 13px; color: var(--muted); }
+  .flight-leg .arrow { color: var(--accent2); font-size: 18px; flex: 1; text-align: center; }
+  .flight-meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .tag {
+    display: inline-block;
+    font-size: 11px;
+    background: var(--card2);
+    color: var(--accent2);
+    padding: 2px 8px;
+    border-radius: 6px;
+    margin-top: 6px;
+    font-weight: 600;
+  }
+  .total { font-size: 22px; font-weight: 800; color: var(--accent); }
+  .pin { font-family: monospace; background: var(--card2); padding: 2px 8px; border-radius: 6px; color: var(--accent2); font-weight: 700; }
+  .page-title { font-size: 20px; font-weight: 800; margin: 4px 0 18px; color: var(--text); }
+  .page-title-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+  .page-title-row .page-title { margin: 0; }
+  .editable-card { position: relative; }
+  .editable-card .top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .editable-card .top-row .idx-label { font-size: 12px; color: var(--accent2); font-weight: 800; }
+  .flight-leg-edit { display: flex; align-items: center; gap: 8px; }
+  .flight-leg-edit .pt-edit { flex: 1; text-align: center; }
+  .flight-leg-edit .pt-edit input.code-input { text-align: center; font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+  .flight-leg-edit .arrow { color: var(--accent2); font-size: 18px; flex: none; padding: 0 4px; }
+
+  /* Buttons / inputs */
+  .btn {
+    background: var(--card2);
+    color: var(--accent2);
+    border: 1px solid var(--border);
+    padding: 7px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: transform .1s ease, opacity .1s ease, background .15s;
+  }
+  .btn:hover { border-color: var(--accent2); }
+  .btn.primary { background: var(--accent); color: #fff; font-weight: 700; border-color: var(--accent); }
+  .btn.danger { background: transparent; color: var(--danger); border-color: var(--danger); }
+  .btn.small { padding: 4px 9px; font-size: 11px; }
+
+  /* Feedback tátil: qualquer botão "encolhe" levemente ao ser tocado */
+  .btn:active,
+  .sidebar nav button:active,
+  .bottom-tabbar button:active,
+  .trip-footer-actions button:active,
+  .traveler-chip:active,
+  .hero-photo-btn:active {
+    transform: scale(0.96);
+    opacity: .85;
+  }
+  input[type=text], input[type=number], input[type=date], select, textarea {
+    background: var(--card2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 13px;
+    width: 100%;
+    font-family: inherit;
+  }
+  textarea { resize: vertical; min-height: 44px; }
+  label.field-label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 3px; font-weight: 600; }
+  .field { margin-bottom: 10px; }
+  .field-row { display: flex; gap: 8px; }
+  .field-row > .field { flex: 1; }
+
+  /* Attachments */
+  .attach-list { margin-top: 10px; }
+  .attach-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+  .attach-item .name { display: flex; align-items: center; gap: 8px; overflow: hidden; }
+  .attach-item .name span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .attach-item .actions { display: flex; gap: 6px; flex: none; }
+  .attach-empty { font-size: 12px; color: var(--muted); font-style: italic; margin-top: 6px; }
+  input[type=file] { display: none; }
+
+  /* Traveler chips (shared style for checklist + documentos) */
+  .traveler-select { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+  .traveler-chip {
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: var(--card2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    transition: background .15s, transform .1s ease, opacity .1s ease;
+  }
+  .traveler-chip.active { background: var(--accent2); color: #fff; border-color: var(--accent2); }
+  .traveler-chip .rm { opacity: .6; font-weight: 700; }
+
+  /* Roteiro editable */
+  .day-card { border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 14px; background: var(--card2); }
+  .day-card .top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .day-card .top-row .day-idx { font-size: 12px; color: var(--accent2); font-weight: 800; }
+  .activity-card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    margin-top: 10px;
+    background: var(--card);
+  }
+  .activity-card .top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .activity-card .act-idx { font-size: 11px; color: var(--accent); font-weight: 800; }
+  .distance-note {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .distance-note input { width: auto; flex: none; max-width: 140px; }
+
+  /* Checklist */
+  ul.checklist { list-style: none; margin: 0; padding: 0; }
+  ul.checklist li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px dashed var(--border);
+    font-size: 14px;
+  }
+  ul.checklist li:last-child { border-bottom: none; }
+  ul.checklist input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+  ul.checklist li.done label { text-decoration: line-through; color: var(--muted); }
+  ul.checklist li label { flex: 1; }
+  .add-row { display: flex; gap: 8px; margin-top: 12px; }
+  .add-row input { flex: 1; }
+
+  /* Orcamento */
+  .budget-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .converter-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px 14px;
+    min-width: 230px;
+    flex: none;
+    margin-left: auto;
+    box-shadow: 0 2px 10px rgba(30,40,70,.05);
+  }
+  .converter-card .field-label { margin-top: 6px; }
+  .converter-card .result { font-size: 15px; font-weight: 800; color: var(--accent2); margin-top: 6px; }
+  .budget-hero { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .budget-hero .left { flex: 1; min-width: 160px; }
+  .budget-hero .right {
+    background: var(--card2);
+    border: 1px solid var(--accent2);
+    border-radius: 12px;
+    padding: 14px 18px;
+    text-align: right;
+    min-width: 180px;
+  }
+  .budget-hero .right .lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; font-weight: 700; }
+  .budget-hero .right .val { font-size: 26px; font-weight: 800; color: var(--accent2); }
+  .budget-hero .right .val.neg { color: var(--danger); }
+  .progress-bar { height: 8px; border-radius: 999px; background: var(--card2); overflow: hidden; margin-top: 10px; }
+  .progress-bar .fill { height: 100%; background: var(--accent); }
+  .expense-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    font-size: 13px;
+  }
+  .expense-item .meta { color: var(--muted); font-size: 11px; }
+  .expense-item .amt { font-weight: 800; color: var(--accent); flex: none; margin-left: 8px; }
+  .cat-pill { font-size: 10px; background: var(--chip-bg); color: var(--accent2); padding: 2px 7px; border-radius: 999px; margin-right: 6px; font-weight: 700; }
+
+  /* Responsive: collapse sidebar to a top bar on small screens */
+  /* ---------------- Barra de abas fixa (navegação nativa no mobile) ---------------- */
+  .bottom-tabbar {
+    display: none;
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 900;
+    background: linear-gradient(180deg, #1b2540, #131b2e);
+    border-top: 1px solid rgba(255,255,255,.08);
+    padding: 6px 2px calc(6px + env(safe-area-inset-bottom));
+    overflow-x: auto;
+  }
+  .bottom-tabbar button {
+    flex: 1 0 auto;
+    min-width: 50px;
+    background: none;
+    border: none;
+    color: #9aa4c2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 2px;
+    font-size: 9.5px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: transform .1s ease, opacity .1s ease, color .15s;
+  }
+  .bottom-tabbar button .icon { font-size: 18px; line-height: 1; }
+  .bottom-tabbar button.active { color: var(--accent); }
+
+  @media (max-width: 760px) {
+    body { flex-direction: column; }
+    .sidebar { width: 100%; height: auto; position: static; padding: calc(14px + env(safe-area-inset-top)) 14px 14px; }
+    .sidebar-hero { padding: 14px 12px; }
+    .landmark-strip { display: none; }
+    .sidebar nav { display: none; }
+    .bottom-tabbar { display: flex; }
+    main { padding: 20px 14px calc(78px + env(safe-area-inset-bottom)); }
+  }
+
+  /* Visualizador de PDF embutido (evita depender de abas/pop-ups) */
+  #pdf-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #10131c;
+    z-index: 1000;
+    flex-direction: column;
+  }
+  #pdf-modal-overlay.open { display: flex; }
+  #pdf-modal-header {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: calc(10px + env(safe-area-inset-top)) 14px 10px;
+    background: #131b2e;
+    border-bottom: 1px solid rgba(255,255,255,.1);
+  }
+  #pdf-modal-title {
+    color: #f2f4fb;
+    font-size: 13px;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  #pdf-modal-body {
+    flex: 1;
+    width: 100%;
+    overflow-y: auto;
+    background: #545a66;
+    padding: 14px;
+  }
+  #pdf-modal-body canvas {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 0 auto 14px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.35);
+  }
+
+  .table-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #10131c;
+    z-index: 1000;
+    flex-direction: column;
+  }
+  .table-overlay.open { display: flex; }
+  .table-overlay-header {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: calc(10px + env(safe-area-inset-top)) 14px 10px;
+    background: #131b2e;
+    color: #f2f4fb;
+    font-size: 13px;
+    font-weight: 700;
+    border-bottom: 1px solid rgba(255,255,255,.1);
+  }
+  .table-overlay-body {
+    flex: 1;
+    overflow: auto;
+    padding: 14px;
+    background: var(--card);
+  }
+  .table-overlay-body table { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--card); color: var(--text); }
+  .table-overlay-body th, .table-overlay-body td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
+  .table-overlay-body th { background: var(--card2); font-weight: 700; position: sticky; top: 0; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar" id="app-sidebar">
+  <div class="sidebar-hero" id="sidebar-hero">
+    <button class="hero-photo-btn" id="hero-photo-btn" type="button">📷 Trocar foto</button>
+    <input type="file" id="hero-photo-input" accept="image/*">
+    <input type="text" class="title-input" id="trip-title-input" placeholder="Nome da viagem">
+    <input type="text" class="subtitle-input" id="trip-subtitle-input" placeholder="Datas / destino">
+    <div class="countdown" id="countdown">calculando...</div>
+    <div class="sync-status" id="sync-status">🔄 conectando...</div>
+  </div>
+  <div class="landmark-strip">
+    <img src="https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?auto=format&fit=crop&w=200&q=60" alt="">
+    <img src="https://images.unsplash.com/photo-1483729558449-99ef09a8c325?auto=format&fit=crop&w=200&q=60" alt="">
+    <img src="https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=200&q=60" alt="">
+    <img src="https://images.unsplash.com/photo-1508804185872-d7badad00f7d?auto=format&fit=crop&w=200&q=60" alt="">
+  </div>
+  <nav>
+    <button data-tab="resumo" class="active">🗺️ Resumo</button>
+    <button data-tab="voos">✈️ Voos</button>
+    <button data-tab="hoteis">🏨 Hotéis</button>
+    <button data-tab="documentos">📄 Documentos</button>
+    <button data-tab="roteiro">📅 Roteiro</button>
+    <button data-tab="checklist">✅ Checklist</button>
+    <button data-tab="orcamento">💰 Orçamento</button>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="trip-code-box">
+      <div class="trip-code-header" id="trip-code-toggle">
+        <div>
+          <div class="trip-code-label">🔗 Compartilhar e gerenciar viagem</div>
+          <div class="trip-code-value" id="trip-code-value">------</div>
+        </div>
+        <span class="trip-code-arrow" id="trip-code-arrow">▾</span>
+      </div>
+      <div class="trip-code-collapsible" id="trip-code-collapsible">
+        <div class="trip-footer-actions">
+          <button type="button" id="copy-trip-link-btn">🔗 Convidar (esta viagem)</button>
+          <button type="button" id="invite-blank-btn">👥 Compartilhar App</button>
+          <button type="button" class="new-trip-btn" id="new-trip-btn">＋ Iniciar nova viagem</button>
+          <button type="button" id="show-local-trips-btn">🔎 Viagens salvas neste celular</button>
+        </div>
+        <div class="trip-code-join">
+          <input type="text" id="join-trip-code-input" placeholder="Colar código recebido">
+          <button type="button" id="join-trip-code-btn">Entrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<nav class="bottom-tabbar" id="bottom-tabbar">
+  <button data-tab="resumo" class="active"><span class="icon">🗺️</span>Resumo</button>
+  <button data-tab="voos"><span class="icon">✈️</span>Voos</button>
+  <button data-tab="hoteis"><span class="icon">🏨</span>Hotéis</button>
+  <button data-tab="documentos"><span class="icon">📄</span>Docs</button>
+  <button data-tab="roteiro"><span class="icon">📅</span>Roteiro</button>
+  <button data-tab="checklist"><span class="icon">✅</span>Check</button>
+  <button data-tab="orcamento"><span class="icon">💰</span>Money</button>
+</nav>
+
+<main>
+
+  <!-- RESUMO -->
+  <div class="tab active" id="resumo">
+    <div class="page-title">Visão geral</div>
+    <div class="card">
+      <h3>📍 Visão geral da viagem</h3>
+      <div class="field">
+        <label class="field-label">Duração</label>
+        <input type="text" id="resumo-duracao" placeholder="Ex: 11 dias (8 dias nos EUA)">
+      </div>
+      <div class="field">
+        <label class="field-label">Saída</label>
+        <input type="text" id="resumo-saida" placeholder="Ex: 22 nov, GIG (Galeão)">
+      </div>
+      <div class="field">
+        <label class="field-label">Chegada</label>
+        <input type="text" id="resumo-chegada" placeholder="Ex: 23 nov, Miami → Orlando">
+      </div>
+      <div class="field">
+        <label class="field-label">Destinos</label>
+        <input type="text" id="resumo-destinos" placeholder="Ex: Orlando (5 noites) + Miami Beach (3 noites)">
+      </div>
+      <div class="field">
+        <label class="field-label">Volta</label>
+        <input type="text" id="resumo-volta" placeholder="Ex: 2 dez, via Miami → EZE → GIG">
+      </div>
+    </div>
+    <div class="card">
+      <h3>🧭 Rota resumida</h3>
+      <textarea id="resumo-rota" style="min-height:110px;" placeholder="Ex: GIG → MIA → MCO (Orlando): 23/11 a 24/11..."></textarea>
+    </div>
+  </div>
+
+  <!-- VOOS -->
+  <div class="tab" id="voos">
+    <div class="page-title-row">
+      <div class="page-title">Voos</div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn" id="open-voos-table-btn">📋 Resumo</button>
+        <button class="btn primary" id="add-voo-btn">+ Adicionar voo</button>
+      </div>
+    </div>
+    <div id="voos-list"></div>
+  </div>
+
+  <!-- HOTEIS -->
+  <div class="tab" id="hoteis">
+    <div class="page-title-row">
+      <div class="page-title">Hotéis</div>
+      <button class="btn primary" id="add-hotel-btn">+ Adicionar hotel</button>
+    </div>
+    <div id="hoteis-list"></div>
+    <div class="card">
+      <h3>ℹ️ Notas gerais dos hotéis</h3>
+      <textarea id="hotel-notas-gerais" placeholder="Ex: depósito caução, documentos exigidos, wi-fi, estacionamento..."></textarea>
+    </div>
+  </div>
+
+  <!-- DOCUMENTOS -->
+  <div class="tab" id="documentos">
+    <div class="page-title">Documentos</div>
+    <div class="card">
+      <h3>👤 Ver documentos de</h3>
+      <div class="traveler-select" id="doc-traveler-select"></div>
+      <div class="add-row">
+        <input type="text" id="new-traveler-name-doc" placeholder="Nome do novo viajante">
+        <button class="btn" id="add-traveler-btn-doc">+ Adicionar</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3 id="doc-title">📄 Documentos</h3>
+      <p style="font-size:12px; color:var(--muted); margin:0 0 10px;">Passaporte, ESTA, seguro viagem, vouchers e outros PDFs.</p>
+      <button class="btn primary" id="doc-upload-btn">+ Adicionar PDF</button>
+      <input type="file" id="doc-upload-input" accept="application/pdf" multiple>
+      <div class="attach-list" id="doc-list"></div>
+    </div>
+  </div>
+
+  <!-- ROTEIRO -->
+  <div class="tab" id="roteiro">
+    <div class="page-title-row">
+      <div class="page-title">Roteiro</div>
+      <button class="btn" id="open-roteiro-table-btn">📋 Ver tabela resumo</button>
+    </div>
+    <div class="card">
+      <button class="btn primary" id="add-day-btn">+ Adicionar dia</button>
+    </div>
+    <div id="roteiro-list"></div>
+  </div>
+
+  <!-- CHECKLIST -->
+  <div class="tab" id="checklist">
+    <div class="page-title">Checklist</div>
+    <div class="card">
+      <h3>👤 Viajante</h3>
+      <div class="traveler-select" id="checklist-traveler-select"></div>
+      <div class="add-row">
+        <input type="text" id="new-traveler-name" placeholder="Nome do novo viajante">
+        <button class="btn" id="add-traveler-btn">+ Adicionar</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3 id="checklist-title">Checklist</h3>
+      <ul class="checklist" id="checklist-items"></ul>
+      <div class="add-row">
+        <input type="text" id="new-checklist-item" placeholder="Novo item do checklist">
+        <button class="btn primary" id="add-checklist-item-btn">Adicionar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ORCAMENTO -->
+  <div class="tab" id="orcamento">
+    <div class="budget-top-row">
+      <div class="page-title" style="margin:0;">💰 Orçamento (US$)</div>
+      <div class="converter-card">
+        <label class="field-label">Conversor R$ → US$ (cotação do dia)</label>
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label">Cotação (R$ por US$1)</label>
+            <input type="number" id="fx-rate" step="0.0001" placeholder="Ex: 5.35">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label">Valor em R$</label>
+            <input type="number" id="fx-brl" step="0.01" placeholder="0,00">
+          </div>
+          <div class="field">
+            <label class="field-label">Equivalente</label>
+            <div class="result" id="fx-result">US$ 0,00</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="budget-hero">
+        <div class="left">
+          <label class="field-label">Valor total disponível para a viagem (US$)</label>
+          <input type="number" id="budget-total" placeholder="Ex: 3000" step="0.01">
+        </div>
+        <div class="right">
+          <div class="lbl">Saldo restante</div>
+          <div class="val" id="budget-remaining">US$ 0,00</div>
+        </div>
+      </div>
+      <div class="progress-bar"><div class="fill" id="budget-fill" style="width:0%"></div></div>
+      <div style="font-size:12px; color:var(--muted); margin-top:8px;">Gasto total: <span id="budget-spent">US$ 0,00</span></div>
+    </div>
+
+    <div class="card">
+      <h3>💵 Lançar gasto</h3>
+      <div class="field">
+        <label class="field-label">Viajante</label>
+        <select id="expense-traveler"></select>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label class="field-label">Categoria</label>
+          <select id="expense-category">
+            <option>Compras</option>
+            <option>Alimentação</option>
+            <option>Transporte</option>
+            <option>Lazer</option>
+            <option>Crianças</option>
+            <option>Presentes</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">Valor (US$)</label>
+          <input type="number" id="expense-amount" step="0.01" placeholder="0,00">
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label">Descrição (opcional)</label>
+        <input type="text" id="expense-desc" placeholder="Ex: Ingresso Universal">
+      </div>
+      <button class="btn primary" id="add-expense-btn">+ Adicionar gasto</button>
+    </div>
+
+    <div class="card">
+      <h3>📊 Gastos lançados</h3>
+      <div id="expense-list"></div>
+      <p class="attach-empty" id="expense-empty" style="display:none;">Nenhum gasto lançado ainda.</p>
+    </div>
+  </div>
+
+  <footer class="app-credit">Trip Plan · Desenvolvido por EduardoRSMNunes</footer>
+</main>
+
+<div id="pdf-modal-overlay">
+  <div id="pdf-modal-header">
+    <span id="pdf-modal-title">Documento</span>
+    <button class="btn primary" id="pdf-modal-close">✕ Fechar</button>
+  </div>
+  <div id="pdf-modal-body"></div>
+</div>
+
+<div id="roteiro-table-overlay" class="table-overlay">
+  <div class="table-overlay-header">
+    <span>📋 Roteiro resumido</span>
+    <button class="btn primary" id="roteiro-table-close">✕ Fechar</button>
+  </div>
+  <div id="roteiro-table-body" class="table-overlay-body"></div>
+</div>
+
+<div id="voos-table-overlay" class="table-overlay">
+  <div class="table-overlay-header">
+    <span>📋 Voos resumidos</span>
+    <button class="btn primary" id="voos-table-close">✕ Fechar</button>
+  </div>
+  <div id="voos-table-body" class="table-overlay-body"></div>
+</div>
+
+<div id="confirm-modal-overlay">
+  <div id="confirm-modal-box">
+    <p id="confirm-modal-message"></p>
+    <div id="confirm-modal-actions">
+      <button class="btn" id="confirm-modal-cancel">Cancelar</button>
+      <button class="btn primary" id="confirm-modal-ok">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<div id="trips-modal-overlay">
+  <div id="trips-modal-box">
+    <h3>Viagens salvas neste celular</h3>
+    <p class="trips-modal-hint">Se o app abriu na viagem errada, escolha a certa abaixo.</p>
+    <div id="trips-modal-list"></div>
+    <div id="confirm-modal-actions">
+      <button class="btn" id="trips-modal-close">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ---------- Código da viagem (isola os dados de cada viagem/pessoa) ----------
+  // Cada viagem vive num "código" separado, tanto no localStorage quanto no
+  // Firebase (trips/<codigo>/state). Abrir o link com ?viagem=CODIGO adota
+  // aquele código neste aparelho (é assim que a esposa "entra" na mesma
+  // viagem, ou um amigo recebe um espaço em branco só dele).
+  const LEGACY_STORAGE_KEY = 'viagemEuaApp_v2';
+  const TRIP_CODE_STORAGE_KEY = 'viagemEuaApp_tripCode';
+
+  function generateTripCode() {
+    return (Math.random().toString(36).slice(2, 8) + Math.random().toString(36).slice(2, 8)).slice(0, 10);
+  }
+
+  function getTripCode() {
+    const params = new URLSearchParams(window.location.search);
+    // "join" = ação explícita de entrar em outra viagem (link de convite ou
+    // campo "Entrar") — é a ÚNICA coisa que pode trocar a viagem ativa deste
+    // aparelho. "viagem" é só um lembrete passivo (serve pra reabrir o ícone
+    // da Tela de Início na viagem certa) e NUNCA troca uma viagem já ativa —
+    // isso evita que reabrir um link antigo do histórico/sugestão do Safari
+    // troque a viagem sozinho.
+    const joinCode = (params.get('join') || '').trim();
+    const passiveCode = (params.get('viagem') || '').trim();
+    let code = localStorage.getItem(TRIP_CODE_STORAGE_KEY);
+    if (joinCode) {
+      code = joinCode;
+      localStorage.setItem(TRIP_CODE_STORAGE_KEY, code);
+    } else if (!code) {
+      code = passiveCode || generateTripCode();
+      localStorage.setItem(TRIP_CODE_STORAGE_KEY, code);
+    }
+    // Mantemos o código sempre visível na própria URL (em vez de limpá-la).
+    // Isso é essencial no iOS: um app "Adicionado à Tela de Início" roda num
+    // armazenamento separado do Safari e não enxerga o localStorage de lá —
+    // sem o código na URL que fica salva no ícone, o app instalado não teria
+    // como saber qual viagem abrir e criaria uma em branco.
+    if (params.get('viagem') !== code || params.has('join')) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('join');
+      url.searchParams.set('viagem', code);
+      window.history.replaceState({}, '', url.toString());
+    }
+    return code;
+  }
+
+  const TRIP_CODE = getTripCode();
+  const STORAGE_KEY = 'viagemEuaApp_v2_' + TRIP_CODE;
+
+  // Mantido só para migrar o aparelho que já tinha a viagem Orlando/Miami
+  // salva com a chave antiga (sem código) — viagens novas nascem em branco.
+  const legacyDefaultState = {
+    tripTitle: 'Orlando & Miami',
+    tripSubtitle: '22 nov — 2 dez de 2026',
+    heroImage: null,
+    travelers: ['Eduardo', 'Thaís'],
+    activeChecklistTraveler: 'Eduardo',
+    activeDocTraveler: 'Eduardo',
+    checklists: {
+      'Eduardo': [
+        { text: 'Conferir validade do passaporte (6+ meses)', done: false },
+        { text: 'ESTA aprovado', done: false },
+        { text: 'Seguro viagem contratado', done: false },
+        { text: 'Câmbio / cartão internacional carregado', done: false },
+        { text: 'Chip internacional ou e-SIM', done: false },
+        { text: 'Confirmar reservas de hotel e voos 48h antes', done: false },
+        { text: 'Avisar banco/cartão sobre viagem internacional', done: false },
+        { text: 'Ingressos de parques comprados com antecedência', done: false }
+      ],
+      'Thaís': [
+        { text: 'Conferir validade do passaporte (6+ meses)', done: false },
+        { text: 'ESTA aprovado', done: false },
+        { text: 'Seguro viagem contratado', done: false }
+      ]
+    },
+    attachments: {}, // { "voo-1": [...], "doc_Eduardo": [...], "act_<id>": [...] }
+    voos: [
+      { id: 'voo-1', trecho: 'Trecho 1', codigo: 'AA 964', origem: 'GIG', horaOrigem: '22/11 · 22:25', destino: 'MIA', horaDestino: '23/11 · 05:00', meta: 'American Airlines · overnight' },
+      { id: 'voo-2', trecho: 'Trecho 2', codigo: 'AA 1018', origem: 'MIA', horaOrigem: '23/11 · 07:30', destino: 'MCO', horaDestino: '23/11 · 08:43', meta: 'American Airlines · conexão em Miami' },
+      { id: 'voo-3', trecho: 'Trecho 3', codigo: 'AA 3077', origem: 'MCO', horaOrigem: '01/12 · 19:23', destino: 'MIA', horaDestino: '01/12 · 20:39', meta: 'American Airlines · início da volta' },
+      { id: 'voo-4', trecho: 'Trecho 4', codigo: 'AA 933', origem: 'MIA', horaOrigem: '01/12 · 23:05', destino: 'EZE', horaDestino: '02/12 · 10:15', meta: 'American Airlines · overnight, chegada em Buenos Aires' },
+      { id: 'voo-5', trecho: 'Trecho 5', codigo: 'GOL 7729', origem: 'EZE', horaOrigem: '02/12 · 14:00', destino: 'GIG', horaDestino: '02/12 · 16:55', meta: 'GOL Linhas Aéreas · último trecho, volta ao Rio' }
+    ],
+    hoteis: [
+      { id: 'hotel-1', nome: '🏨 Ramada by Wyndham Kissimmee Gateway', badge: 'Orlando (1ª estadia)', checkin: '23 nov, seg · 16:00', checkout: '24 nov, ter · 11:00', diarias: '1', confirmacao: '5651.863.156', pin: '9331', endereco: '7470 W Irlo Bronson Memorial Hwy, Celebration, FL 34747', telefone: '+1 407 396 4400', valor: '≈ R$ 420 (US$ 82,17)', cancelamento: '', observacoes: '' },
+      { id: 'hotel-2', nome: '🏖️ Tropics Hotel', badge: 'Miami Beach', checkin: '24 nov, ter · 16:00', checkout: '27 nov, sex · 11:00', diarias: '3', confirmacao: '72076395399917 (Hoteis.com)', pin: '', endereco: '1550 Collins Ave, Miami Beach, FL 33139', telefone: '', valor: 'R$ 1.716,98 (pago)', cancelamento: '19 nov, 18h', observacoes: 'Quarto: Standard, 1 cama King, self check-in' },
+      { id: 'hotel-3', nome: '🏨 Ramada by Wyndham Kissimmee Gateway', badge: 'Orlando (2ª estadia)', checkin: '27 nov, sex · 16:00', checkout: '1 dez, ter · 11:00', diarias: '4', confirmacao: '6077.499.652', pin: '3207', endereco: '', telefone: '', valor: '≈ R$ 1.760 (US$ 344,13)', cancelamento: '25 nov, 23:59', observacoes: 'Bônus: shuttle grátis para os parques Disney' }
+    ],
+    hotelNotasGerais: 'Ambas estadias do Ramada exigem depósito caução de USD 150 (reembolsável em até 7 dias). Levar documento de identidade com foto + cartão de crédito no check-in. Wi-Fi e estacionamento grátis inclusos.',
+    resumo: {
+      duracao: '11 dias (8 dias nos EUA)',
+      saida: '22 nov, GIG (Galeão)',
+      chegada: '23 nov, Miami → Orlando',
+      destinos: 'Orlando (5 noites) + Miami Beach (3 noites)',
+      volta: '2 dez, via Miami → EZE → GIG',
+      rota: 'GIG → MIA → MCO (Orlando): 23/11 a 24/11\nTraslado terrestre → Miami Beach: 24/11 a 27/11\nTraslado terrestre → Orlando: 27/11 a 01/12\nMCO → MIA → EZE → GIG: 01/12 a 02/12'
+    },
+    roteiro: [
+      { id: 'd1', data: '22/11', tag: 'Voo', atividades: [
+        { id: 'a1', titulo: 'Embarque no Rio', descricao: 'Voo AA964 GIG→MIA às 22:25 (overnight).', distancia: '' }
+      ]},
+      { id: 'd2', data: '23/11', tag: 'Voo + Hotel', atividades: [
+        { id: 'a2', titulo: 'Chegada em Miami e conexão', descricao: 'Pouso em Miami 05:00 · conexão AA1018 07:30→08:43.', distancia: '' },
+        { id: 'a3', titulo: 'Check-in Ramada Kissimmee', descricao: 'Check-in às 16h.', distancia: '' }
+      ]},
+      { id: 'd3', data: '24/11', tag: 'Traslado', atividades: [
+        { id: 'a4', titulo: 'Orlando → Miami Beach', descricao: 'Check-out do Ramada às 11h. Deslocamento até Miami Beach. Check-in no Tropics Hotel às 16h.', distancia: '' }
+      ]},
+      { id: 'd4', data: '25/11', tag: 'Livre', atividades: [
+        { id: 'a5', titulo: 'Miami Beach', descricao: 'Dia livre — praia, South Beach, Ocean Drive.', distancia: '' }
+      ]},
+      { id: 'd5', data: '26/11', tag: 'Livre', atividades: [
+        { id: 'a6', titulo: 'Miami', descricao: 'Dia livre — passeios pela cidade (Wynwood, Bayside, Little Havana).', distancia: '' }
+      ]},
+      { id: 'd6', data: '27/11', tag: 'Traslado + Hotel', atividades: [
+        { id: 'a7', titulo: 'Miami → Orlando', descricao: 'Check-out do Tropics às 11h. Deslocamento até Orlando. Check-in no Ramada Kissimmee às 16h.', distancia: '' }
+      ]},
+      { id: 'd7', data: '28/11', tag: 'Parque', atividades: [
+        { id: 'a8', titulo: 'Orlando — Parques', descricao: 'Dia de parque (shuttle grátis para Disney disponível no hotel).', distancia: '' }
+      ]},
+      { id: 'd8', data: '29/11', tag: 'Parque', atividades: [
+        { id: 'a9', titulo: 'Orlando — Parques', descricao: 'Dia de parque.', distancia: '' }
+      ]},
+      { id: 'd9', data: '30/11', tag: 'Parque', atividades: [
+        { id: 'a10', titulo: 'Orlando — Parques', descricao: 'Dia de parque / compras (outlets).', distancia: '' }
+      ]},
+      { id: 'd10', data: '01/12', tag: 'Voo', atividades: [
+        { id: 'a11', titulo: 'Volta para o Brasil', descricao: 'Check-out às 11h. Voo AA3077 MCO→MIA 19:23→20:39. Conexão AA933 MIA→EZE 23:05 (overnight).', distancia: '' }
+      ]},
+      { id: 'd11', data: '02/12', tag: 'Voo', atividades: [
+        { id: 'a12', titulo: 'Chegada ao Brasil', descricao: 'Pouso em Buenos Aires 10:15. Conexão GOL7729 EZE→GIG 14:00→16:55.', distancia: '' }
+      ]}
+    ],
+    budgetTotal: null,
+    fxRate: null,
+    expenses: [] // { traveler, category, amount, desc, date }
+  };
+
+  // Ponto de partida de qualquer viagem nova (seu amigo, ou você mesmo ao
+  // criar "Nova viagem") — tudo em branco, pronto para preencher do zero.
+  const blankState = {
+    tripTitle: '',
+    tripSubtitle: '',
+    heroImage: null,
+    travelers: ['Viajante 1'],
+    activeChecklistTraveler: 'Viajante 1',
+    activeDocTraveler: 'Viajante 1',
+    checklists: { 'Viajante 1': [] },
+    attachments: {},
+    voos: [],
+    hoteis: [],
+    hotelNotasGerais: '',
+    resumo: { duracao: '', saida: '', chegada: '', destinos: '', volta: '', rota: '' },
+    roteiro: [],
+    budgetTotal: null,
+    fxRate: null,
+    expenses: []
+  };
+
+  let state = loadState();
+  let idCounter = Date.now();
+  function uid() { idCounter += 1; return 'id' + idCounter; }
+
+  // O Firebase Realtime Database tem uma particularidade: ele não guarda
+  // arrays/objetos vazios — se uma lista (ex: voos) ficar com 0 itens, a
+  // chave inteira some do banco quando lida de volta (vira "undefined" em
+  // vez de []). Sem essa normalização, o app quebrava inteiro ao tentar
+  // ler ".forEach" de algo que não é mais uma lista. normalizeState
+  // garante que cada campo sempre volte a ser pelo menos uma lista/objeto
+  // vazio, nunca undefined — nunca crasha, mesmo que o Firebase "coma" a
+  // chave.
+  function normalizeState(s) {
+    s.voos = Array.isArray(s.voos) ? s.voos : [];
+    s.hoteis = Array.isArray(s.hoteis) ? s.hoteis : [];
+    s.roteiro = Array.isArray(s.roteiro) ? s.roteiro : [];
+    s.travelers = Array.isArray(s.travelers) && s.travelers.length ? s.travelers : ['Viajante 1'];
+    s.expenses = Array.isArray(s.expenses) ? s.expenses : [];
+    s.checklists = s.checklists && typeof s.checklists === 'object' ? s.checklists : {};
+    s.attachments = s.attachments && typeof s.attachments === 'object' ? s.attachments : {};
+    if (!s.activeChecklistTraveler || !s.travelers.includes(s.activeChecklistTraveler)) s.activeChecklistTraveler = s.travelers[0];
+    if (!s.activeDocTraveler || !s.travelers.includes(s.activeDocTraveler)) s.activeDocTraveler = s.travelers[0];
+    s.tripTitle = s.tripTitle || '';
+    s.tripSubtitle = s.tripSubtitle || '';
+    s.hotelNotasGerais = s.hotelNotasGerais || '';
+    s.resumo = s.resumo && typeof s.resumo === 'object' ? s.resumo : {};
+    ['duracao','saida','chegada','destinos','volta','rota'].forEach(k => { if (!s.resumo[k]) s.resumo[k] = ''; });
+    return s;
+  }
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return normalizeState(Object.assign({}, JSON.parse(JSON.stringify(blankState)), parsed));
+      }
+      // Nenhum dado ainda para este código de viagem: se este aparelho tem a
+      // viagem antiga (chave sem código), migra ela para o novo código em
+      // vez de começar em branco. Aparelhos novos (amigo, reinstalação) não
+      // têm essa chave antiga, então caem direto no branco abaixo.
+      const legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY);
+      if (legacyRaw) {
+        const parsed = JSON.parse(legacyRaw);
+        const migrated = normalizeState(Object.assign({}, JSON.parse(JSON.stringify(legacyDefaultState)), parsed));
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated)); } catch (e) {}
+        return migrated;
+      }
+    } catch (e) { console.warn('Falha ao carregar estado salvo', e); }
+    return normalizeState(JSON.parse(JSON.stringify(blankState)));
+  }
+
+  function saveState() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+      alert('Não foi possível salvar as informações de texto (armazenamento cheio). Os PDFs e fotos agora ficam em um espaço separado maior, então isso não deveria mais acontecer — mas se aparecer, tente remover algum item do roteiro ou checklist.');
+    }
+    scheduleFirebasePush();
+  }
+
+  // ---------- Sincronização em tempo real (Firebase Realtime Database) ----------
+  // Permite que duas pessoas (ex: você e sua esposa) editem o mesmo app em
+  // celulares diferentes e vejam as mudanças uma da outra quase na hora.
+  // Só o texto (voos, hotéis, roteiro, checklist, orçamento) é sincronizado —
+  // PDFs e fotos continuam salvos só no aparelho de cada um (são arquivos
+  // grandes e cada pessoa pode anexar sua própria cópia se precisar).
+  const firebaseConfig = {
+    apiKey: "AIzaSyDpOTqh_NFAmlhWZl8tupKq1-aa39Fdpxs",
+    authDomain: "viagem-63f1b.firebaseapp.com",
+    databaseURL: "https://viagem-63f1b-default-rtdb.firebaseio.com",
+    projectId: "viagem-63f1b",
+    storageBucket: "viagem-63f1b.firebasestorage.app",
+    messagingSenderId: "972384582373",
+    appId: "1:972384582373:web:cd7750148fa1732011f20c"
+  };
+
+  let fbRef = null;
+  let applyingRemote = false;
+  let fbPushTimer = null;
+  const syncStatusEl = () => document.getElementById('sync-status');
+
+  function scheduleFirebasePush() {
+    if (applyingRemote || !fbRef) return;
+    clearTimeout(fbPushTimer);
+    fbPushTimer = setTimeout(() => {
+      fbRef.set(state).catch(() => {
+        const el = syncStatusEl(); if (el) el.textContent = '⚠️ falha ao sincronizar';
+      });
+    }, 500);
+  }
+
+  function renderAll() {
+    titleInput.value = state.tripTitle;
+    subtitleInput.value = state.tripSubtitle;
+    document.title = state.tripTitle || 'Meu App de Viagem';
+    renderResumo();
+    applyHeroImage();
+    renderVoos();
+    renderHoteis();
+    hotelNotasEl.value = state.hotelNotasGerais || '';
+    renderDocTravelerChips();
+    renderDocs();
+    renderRoteiro();
+    renderTravelerChips();
+    renderChecklist();
+    renderExpenseTravelerOptions();
+    if (state.budgetTotal != null) budgetTotalInput.value = state.budgetTotal;
+    if (state.fxRate != null) fxRateInput.value = state.fxRate;
+    renderExpenses();
+    renderBudgetSummary();
+  }
+
+  function initFirebaseSync() {
+    try {
+      firebase.initializeApp(firebaseConfig);
+      const el = syncStatusEl();
+      // Login anônimo: não pede nada do usuário, só garante que só clientes
+      // reais do app (com um token do Firebase Auth) conseguem ler/escrever
+      // depois que as regras de segurança do banco forem fechadas.
+      firebase.auth().signInAnonymously().then(() => {
+        fbRef = firebase.database().ref('trips/' + TRIP_CODE + '/state');
+        fbRef.on('value', (snap) => {
+          try {
+            const remote = snap.val();
+            if (el) el.textContent = '✅ sincronizado';
+            if (!remote) {
+              // Banco vazio ainda: manda o estado atual como ponto de partida.
+              fbRef.set(state);
+              return;
+            }
+            if (JSON.stringify(remote) === JSON.stringify(state)) return;
+            applyingRemote = true;
+            state = normalizeState(remote);
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+            renderAll();
+          } catch (e) {
+            console.warn('Erro ao aplicar dados sincronizados', e);
+            if (el) el.textContent = '⚠️ erro ao sincronizar (ver console)';
+          } finally {
+            applyingRemote = false;
+          }
+        }, () => {
+          if (el) el.textContent = '⚠️ sem conexão com o servidor';
+        });
+      }).catch((e) => {
+        console.warn('Falha no login anônimo do Firebase', e);
+        if (el) el.textContent = '⚠️ sincronização indisponível';
+      });
+    } catch (e) {
+      const el = syncStatusEl();
+      if (el) el.textContent = '⚠️ sincronização indisponível';
+    }
+  }
+
+  // ---------- Modal de confirmação (substitui o confirm() nativo do navegador) ----------
+  const confirmModalOverlay = document.getElementById('confirm-modal-overlay');
+  const confirmModalMessage = document.getElementById('confirm-modal-message');
+  const confirmModalOkBtn = document.getElementById('confirm-modal-ok');
+  const confirmModalCancelBtn = document.getElementById('confirm-modal-cancel');
+
+  function customConfirm(message) {
+    return new Promise((resolve) => {
+      confirmModalMessage.textContent = message;
+      confirmModalOverlay.classList.add('open');
+      function cleanup(result) {
+        confirmModalOverlay.classList.remove('open');
+        confirmModalOkBtn.removeEventListener('click', onOk);
+        confirmModalCancelBtn.removeEventListener('click', onCancel);
+        resolve(result);
+      }
+      function onOk() { cleanup(true); }
+      function onCancel() { cleanup(false); }
+      confirmModalOkBtn.addEventListener('click', onOk);
+      confirmModalCancelBtn.addEventListener('click', onCancel);
+    });
+  }
+
+  // ---------- Código da viagem: exibição, convite e nova viagem ----------
+  const tripCodeValueEl = document.getElementById('trip-code-value');
+  if (tripCodeValueEl) tripCodeValueEl.textContent = TRIP_CODE;
+
+  document.getElementById('trip-code-toggle').addEventListener('click', () => {
+    document.getElementById('trip-code-collapsible').classList.toggle('open');
+    document.getElementById('trip-code-arrow').classList.toggle('open');
+  });
+
+  document.getElementById('copy-trip-link-btn').addEventListener('click', async () => {
+    const link = window.location.origin + window.location.pathname + '?join=' + encodeURIComponent(TRIP_CODE);
+    try {
+      await navigator.clipboard.writeText(link);
+      const btn = document.getElementById('copy-trip-link-btn');
+      const original = btn.textContent;
+      btn.textContent = '✅ Link copiado!';
+      setTimeout(() => { btn.textContent = original; }, 2000);
+    } catch (e) {
+      prompt('Copie o link abaixo para convidar:', link);
+    }
+  });
+
+  document.getElementById('invite-blank-btn').addEventListener('click', async () => {
+    // Gera um código novo só para o link — não mexe na viagem que este
+    // aparelho está usando agora. Quem abrir o link recebe um espaço em
+    // branco, separado do seu.
+    const blankCode = generateTripCode();
+    const link = window.location.origin + window.location.pathname + '?join=' + encodeURIComponent(blankCode);
+    try {
+      await navigator.clipboard.writeText(link);
+      const btn = document.getElementById('invite-blank-btn');
+      const original = btn.textContent;
+      btn.textContent = '✅ Link copiado!';
+      setTimeout(() => { btn.textContent = original; }, 2000);
+    } catch (e) {
+      prompt('Copie o link abaixo para enviar (viagem em branco, separada da sua):', link);
+    }
+  });
+
+  document.getElementById('new-trip-btn').addEventListener('click', async () => {
+    const ok = await customConfirm('Iniciar uma nova viagem em branco neste celular?\n\nA viagem atual continua salva e acessível pelo link/código dela — isso só troca o que este aparelho mostra a partir de agora, para você mesmo começar a planejar algo novo. Para compartilhar um espaço em branco com outra pessoa, use "Compartilhar App" em vez deste botão.');
+    if (!ok) return;
+    const newCode = generateTripCode();
+    localStorage.setItem(TRIP_CODE_STORAGE_KEY, newCode);
+    localStorage.setItem('viagemEuaApp_v2_' + newCode, JSON.stringify(blankState));
+    window.location.href = window.location.pathname;
+  });
+
+  function joinTripByCode() {
+    const input = document.getElementById('join-trip-code-input');
+    const code = input.value.trim();
+    if (!code) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set('join', code);
+    window.location.href = url.toString();
+  }
+  document.getElementById('join-trip-code-btn').addEventListener('click', joinTripByCode);
+  document.getElementById('join-trip-code-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') joinTripByCode();
+  });
+
+  // ---------- Recuperação: viagens salvas neste celular ----------
+  // Troca de código nunca apaga dados — cada viagem fica guardada na sua
+  // própria chave. Esta lista existe pra você conseguir voltar pra viagem
+  // certa caso o app abra em outra por engano.
+  function listLocalTrips() {
+    const prefix = 'viagemEuaApp_v2_';
+    const trips = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.indexOf(prefix) === 0) {
+        const code = key.slice(prefix.length);
+        try {
+          const data = JSON.parse(localStorage.getItem(key));
+          trips.push({ code, title: (data && data.tripTitle) || '(sem título)' });
+        } catch (e) {}
+      }
+    }
+    return trips;
+  }
+
+  function renderTripsModal() {
+    const listEl = document.getElementById('trips-modal-list');
+    const trips = listLocalTrips();
+    listEl.innerHTML = '';
+    if (trips.length === 0) {
+      listEl.innerHTML = '<p style="font-size:13px;color:var(--muted);margin:0;">Nenhuma viagem salva neste aparelho ainda.</p>';
+      return;
+    }
+    trips.forEach(t => {
+      const isCurrent = t.code === TRIP_CODE;
+      const item = document.createElement('div');
+      item.className = 'trips-modal-item' + (isCurrent ? ' current' : '');
+      item.innerHTML = `
+        <div>
+          <div class="trips-modal-item-title">${escapeHtml(t.title)}</div>
+          <div class="trips-modal-item-code">${escapeHtml(t.code)}</div>
+        </div>
+        <div style="display:flex; gap:6px; flex:none;">
+          ${isCurrent ? '<span class="trips-modal-current-badge">Atual</span>' : '<button class="btn small" data-action="use" type="button">Usar</button><button class="btn small danger" data-action="del" type="button">Excluir</button>'}
+        </div>
+      `;
+      if (!isCurrent) {
+        item.querySelector('[data-action="use"]').addEventListener('click', () => {
+          const url = new URL(window.location.href);
+          url.searchParams.set('join', t.code);
+          window.location.href = url.toString();
+        });
+        item.querySelector('[data-action="del"]').addEventListener('click', async () => {
+          const ok = await customConfirm(`Excluir "${t.title}" deste celular?\n\nIsso remove só a cópia local deste aparelho — não afeta quem mais tiver essa viagem sincronizada em outro celular.`);
+          if (!ok) return;
+          localStorage.removeItem('viagemEuaApp_v2_' + t.code);
+          renderTripsModal();
+        });
+      }
+      listEl.appendChild(item);
+    });
+  }
+
+  const tripsModalOverlay = document.getElementById('trips-modal-overlay');
+  document.getElementById('show-local-trips-btn').addEventListener('click', () => {
+    renderTripsModal();
+    tripsModalOverlay.classList.add('open');
+  });
+  document.getElementById('trips-modal-close').addEventListener('click', () => {
+    tripsModalOverlay.classList.remove('open');
+  });
+
+  // ---------- Armazenamento de arquivos grandes (PDFs e fotos) via IndexedDB ----------
+  // O localStorage tem um limite pequeno (uns 5-10MB) e estourava com PDFs/fotos.
+  // IndexedDB tem um limite muito maior, então os arquivos binários ficam aqui,
+  // e só um "código" de referência (fileKey) fica salvo no estado leve (localStorage).
+  const DB_NAME = 'viagemEuaFilesDB';
+  const DB_STORE = 'files';
+  let dbPromise = null;
+  function getDB() {
+    if (dbPromise) return dbPromise;
+    dbPromise = new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = () => { req.result.createObjectStore(DB_STORE); };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    return dbPromise;
+  }
+  async function idbSet(key, value) {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(DB_STORE, 'readwrite');
+      tx.objectStore(DB_STORE).put(value, key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+  async function idbGet(key) {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(DB_STORE, 'readonly');
+      const req = tx.objectStore(DB_STORE).get(key);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  async function idbDelete(key) {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(DB_STORE, 'readwrite');
+      tx.objectStore(DB_STORE).delete(key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  // Reduz o tamanho de fotos (não de PDFs) antes de guardar, redimensionando para no máx. 1000px.
+  function compressImage(file, maxWidth) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const scale = Math.min(1, maxWidth / img.width);
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width * scale;
+          canvas.height = img.height * scale;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', 0.75));
+        };
+        img.onerror = reject;
+        img.src = reader.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function fmtUSD(v) {
+    return (v || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+  }
+
+  function escapeHtml(str) {
+    return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  function escapeAttr(str) {
+    return (str || '').replace(/"/g,'&quot;');
+  }
+
+  // ---------- Título editável ----------
+  const titleInput = document.getElementById('trip-title-input');
+  const subtitleInput = document.getElementById('trip-subtitle-input');
+  titleInput.value = state.tripTitle;
+  subtitleInput.value = state.tripSubtitle;
+  document.title = state.tripTitle;
+  titleInput.addEventListener('input', () => {
+    state.tripTitle = titleInput.value;
+    document.title = titleInput.value || 'Meu App de Viagem';
+    saveState();
+  });
+  subtitleInput.addEventListener('input', () => {
+    state.tripSubtitle = subtitleInput.value;
+    saveState();
+  });
+
+  // ---------- Resumo (editável) ----------
+  const resumoFieldMap = {
+    duracao: 'resumo-duracao',
+    saida: 'resumo-saida',
+    chegada: 'resumo-chegada',
+    destinos: 'resumo-destinos',
+    volta: 'resumo-volta',
+    rota: 'resumo-rota'
+  };
+  const resumoInputs = {};
+  Object.keys(resumoFieldMap).forEach(key => {
+    const el = document.getElementById(resumoFieldMap[key]);
+    resumoInputs[key] = el;
+    el.value = state.resumo[key] || '';
+    el.addEventListener('input', () => {
+      state.resumo[key] = el.value;
+      saveState();
+    });
+  });
+  function renderResumo() {
+    Object.keys(resumoFieldMap).forEach(key => {
+      resumoInputs[key].value = state.resumo[key] || '';
+    });
+  }
+
+  // ---------- Foto de fundo da barra lateral (editável) ----------
+  // A foto cobre a barra lateral inteira (do topo até onde o conteúdo
+  // branco começa), não só o cartão do título — por isso aplicamos no
+  // próprio elemento .sidebar, não num card menor dentro dele.
+  const sidebarHeroEl = document.getElementById('app-sidebar');
+  const heroPhotoBtn = document.getElementById('hero-photo-btn');
+  const heroPhotoInput = document.getElementById('hero-photo-input');
+
+  async function applyHeroImage() {
+    // Compatibilidade: versões antigas guardavam a foto direto em state.heroImage.
+    // A versão atual guarda só "usarFoto: true" e a imagem em si vai pro IndexedDB.
+    let data = null;
+    if (state.heroImage && typeof state.heroImage === 'string' && state.heroImage.startsWith('data:')) {
+      data = state.heroImage; // formato antigo
+    } else if (state.heroImage) {
+      data = await idbGet('heroImage');
+    }
+    if (data) {
+      sidebarHeroEl.style.backgroundImage =
+        `linear-gradient(180deg, rgba(10,16,32,.55), rgba(19,27,46,.92) 55%, #131b2e 100%), url('${data}')`;
+      sidebarHeroEl.style.backgroundSize = 'cover';
+      sidebarHeroEl.style.backgroundPosition = 'center';
+    } else {
+      sidebarHeroEl.style.backgroundImage = '';
+    }
+  }
+  applyHeroImage();
+
+  heroPhotoBtn.addEventListener('click', () => heroPhotoInput.click());
+  heroPhotoInput.addEventListener('change', async () => {
+    const file = heroPhotoInput.files[0];
+    if (!file) return;
+    try {
+      const data = await compressImage(file, 1000);
+      await idbSet('heroImage', data);
+      state.heroImage = true;
+      saveState();
+      applyHeroImage();
+    } catch (e) {
+      alert('Não foi possível salvar essa foto.');
+    }
+    heroPhotoInput.value = '';
+  });
+
+  // ---------- Visualizador de PDF embutido (modal, desenhado com PDF.js) ----------
+  // Motivo de usar PDF.js em vez de <iframe>/<embed>: quando o app é adicionado à
+  // Tela de Início do iPhone (modo "standalone"), o WebKit do iOS não consegue
+  // exibir PDFs dentro de iframes — é uma limitação do sistema, não do app.
+  // Desenhando o PDF em <canvas> nós contornamos essa limitação.
+  const pdfModalOverlay = document.getElementById('pdf-modal-overlay');
+  const pdfModalBody = document.getElementById('pdf-modal-body');
+  const pdfModalTitle = document.getElementById('pdf-modal-title');
+  const pdfModalCloseBtn = document.getElementById('pdf-modal-close');
+
+  if (window.pdfjsLib) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+
+  function base64ToUint8Array(dataUrl) {
+    const base64 = dataUrl.split(',')[1];
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  }
+
+  async function openPdfModal(f, title) {
+    pdfModalTitle.textContent = title || 'Documento';
+    pdfModalBody.innerHTML = '<p style="font-family:sans-serif;padding:20px;color:#333;">Carregando...</p>';
+    pdfModalOverlay.classList.add('open');
+
+    if (!window.pdfjsLib) {
+      pdfModalBody.innerHTML = '<p style="font-family:sans-serif;padding:20px;color:#333;">Não foi possível carregar o visualizador de PDF (sem conexão com a internet?). Tente novamente com internet.</p>';
+      return;
+    }
+
+    // Compatibilidade: anexos antigos guardavam o PDF direto (f.data);
+    // os novos guardam só uma referência (f.fileKey) e o PDF fica no IndexedDB.
+    const data = f.data || await idbGet(f.fileKey);
+    if (!data) {
+      pdfModalBody.innerHTML = '<p style="font-family:sans-serif;padding:20px;color:#333;">Não foi possível carregar este arquivo.</p>';
+      return;
+    }
+
+    try {
+      const bytes = base64ToUint8Array(data);
+      const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
+      pdfModalBody.innerHTML = '';
+      const containerWidth = pdfModalBody.clientWidth - 28 || 320;
+      // Telas de iPhone/retina têm mais pixels físicos do que "pixels de CSS".
+      // Sem levar isso em conta, o canvas fica com poucos pixels reais e a
+      // imagem sai borrada ao ser esticada para caber na tela. Multiplicamos
+      // a escala pelo devicePixelRatio para desenhar em alta resolução, e
+      // depois usamos CSS para exibir no tamanho visual correto.
+      const dpr = Math.min(window.devicePixelRatio || 1, 3);
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const unscaled = page.getViewport({ scale: 1 });
+        const displayScale = Math.min(2, containerWidth / unscaled.width);
+        const renderScale = displayScale * dpr;
+        const viewport = page.getViewport({ scale: renderScale });
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        canvas.style.width = Math.round(viewport.width / dpr) + 'px';
+        canvas.style.height = Math.round(viewport.height / dpr) + 'px';
+        pdfModalBody.appendChild(canvas);
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+      }
+    } catch (e) {
+      pdfModalBody.innerHTML = '<p style="font-family:sans-serif;padding:20px;color:#333;">Não foi possível abrir este PDF (' + escapeHtml(e.message || 'erro desconhecido') + ').</p>';
+    }
+  }
+
+  function closePdfModal() {
+    pdfModalOverlay.classList.remove('open');
+    pdfModalBody.innerHTML = '';
+  }
+
+  pdfModalCloseBtn.addEventListener('click', closePdfModal);
+
+  // ---------- Tabs ----------
+  // Duas barras (menu lateral no desktop, barra fixa embaixo no mobile)
+  // controlam as mesmas abas — por isso selecionamos por [data-tab], não por
+  // '.sidebar nav button', e sincronizamos o estado "active" nas duas.
+  const buttons = document.querySelectorAll('[data-tab]');
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.dataset.tab;
+      buttons.forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.getElementById(tab).classList.add('active');
+    });
+  });
+
+  // ---------- Countdown ----------
+  const tripDate = new Date('2026-11-22T22:25:00-03:00');
+  function updateCountdown() {
+    const now = new Date();
+    const diff = tripDate - now;
+    const el = document.getElementById('countdown');
+    if (diff <= 0) { el.textContent = 'Boa viagem! ✈️'; return; }
+    const days = Math.floor(diff / (1000*60*60*24));
+    el.textContent = `Faltam ${days} dias para embarcar`;
+  }
+  updateCountdown();
+
+  // ---------- Generic attachment helpers ----------
+  function fileToDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function renderAttachList(id, container, emptyLabel) {
+    const files = state.attachments[id] || [];
+    container.innerHTML = '';
+    if (files.length === 0) {
+      const p = document.createElement('p');
+      p.className = 'attach-empty';
+      p.textContent = emptyLabel || 'Nenhum PDF anexado ainda.';
+      container.appendChild(p);
+      return;
+    }
+    files.forEach((f, idx) => {
+      const item = document.createElement('div');
+      item.className = 'attach-item';
+      item.innerHTML = `
+        <div class="name">📎 <span>${escapeHtml(f.name)}</span></div>
+        <div class="actions">
+          <button class="btn small" data-action="open">Abrir</button>
+          <button class="btn small danger" data-action="del">Remover</button>
+        </div>`;
+      item.querySelector('[data-action="open"]').addEventListener('click', async () => {
+        // Abre num modal dentro do próprio app, em vez de aba/pop-up — assim
+        // funciona igual dentro do ícone instalado na tela de início do iPhone,
+        // e sempre tem um botão "Fechar" pra voltar.
+        openPdfModal(f, f.name);
+      });
+      item.querySelector('[data-action="del"]').addEventListener('click', async () => {
+        if (f.fileKey) { try { await idbDelete(f.fileKey); } catch (e) {} }
+        state.attachments[id].splice(idx, 1);
+        saveState();
+        renderAttachList(id, container, emptyLabel);
+      });
+      container.appendChild(item);
+    });
+  }
+
+  function setupAttachZone(id, zoneEl, buttonLabel, emptyLabel) {
+    zoneEl.innerHTML = '';
+    const btn = document.createElement('button');
+    btn.className = 'btn primary';
+    btn.style.marginTop = '10px';
+    btn.textContent = buttonLabel || '+ Anexar PDF';
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/pdf';
+    input.multiple = true;
+    const listDiv = document.createElement('div');
+    listDiv.className = 'attach-list';
+
+    btn.addEventListener('click', () => input.click());
+    input.addEventListener('change', async () => {
+      if (!state.attachments[id]) state.attachments[id] = [];
+      for (const file of input.files) {
+        const data = await fileToDataUrl(file);
+        const fileKey = uid();
+        try {
+          await idbSet(fileKey, data);
+          state.attachments[id].push({ name: file.name, fileKey });
+        } catch (e) {
+          alert('Não foi possível salvar o PDF "' + file.name + '". Tente um arquivo menor.');
+        }
+      }
+      saveState();
+      renderAttachList(id, listDiv, emptyLabel);
+      input.value = '';
+    });
+
+    zoneEl.appendChild(btn);
+    zoneEl.appendChild(input);
+    zoneEl.appendChild(listDiv);
+    renderAttachList(id, listDiv, emptyLabel);
+  }
+
+  // ---------- Voos (editável, lista dinâmica) ----------
+  const voosListEl = document.getElementById('voos-list');
+  const vooFieldDefs = [
+    ['trecho', 'Nome do trecho', 'Ex: Trecho 1'],
+    ['codigo', 'Companhia / nº do voo', 'Ex: AA 964']
+  ];
+  function renderVoos() {
+    voosListEl.innerHTML = '';
+    state.voos.forEach((voo, idx) => {
+      const card = document.createElement('div');
+      card.className = 'card editable-card';
+      card.innerHTML = `
+        <div class="top-row">
+          <span class="idx-label">Voo ${idx + 1}</span>
+          <button class="btn danger small" data-action="del-voo">Remover</button>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label">Trecho</label>
+            <input type="text" data-field="trecho" value="${escapeAttr(voo.trecho)}" placeholder="Ex: Trecho 1">
+          </div>
+          <div class="field">
+            <label class="field-label">Companhia / nº do voo</label>
+            <input type="text" data-field="codigo" value="${escapeAttr(voo.codigo)}" placeholder="Ex: AA 964">
+          </div>
+        </div>
+        <div class="flight-leg-edit">
+          <div class="pt-edit">
+            <input type="text" class="code-input" data-field="origem" value="${escapeAttr(voo.origem)}" placeholder="GIG">
+            <input type="text" data-field="horaOrigem" value="${escapeAttr(voo.horaOrigem)}" placeholder="22/11 · 22:25">
+          </div>
+          <div class="arrow">✈</div>
+          <div class="pt-edit">
+            <input type="text" class="code-input" data-field="destino" value="${escapeAttr(voo.destino)}" placeholder="MIA">
+            <input type="text" data-field="horaDestino" value="${escapeAttr(voo.horaDestino)}" placeholder="23/11 · 05:00">
+          </div>
+        </div>
+        <div class="field" style="margin-top:10px;">
+          <label class="field-label">Observações (companhia, tipo de conexão etc.)</label>
+          <input type="text" data-field="meta" value="${escapeAttr(voo.meta)}" placeholder="Ex: American Airlines · overnight">
+        </div>
+        <div class="attach-zone"></div>
+      `;
+      card.querySelectorAll('[data-field]').forEach(inputEl => {
+        inputEl.addEventListener('input', () => {
+          voo[inputEl.dataset.field] = inputEl.value;
+          saveState();
+        });
+      });
+      card.querySelector('[data-action="del-voo"]').addEventListener('click', async () => {
+        if (await customConfirm('Remover este voo?')) {
+          state.voos.splice(idx, 1);
+          saveState();
+          renderVoos();
+        }
+      });
+      setupAttachZone(voo.id, card.querySelector('.attach-zone'), '+ Anexar cartão de embarque', 'Nenhum cartão de embarque anexado ainda.');
+      voosListEl.appendChild(card);
+    });
+  }
+  document.getElementById('add-voo-btn').addEventListener('click', () => {
+    state.voos.push({ id: 'voo_' + uid(), trecho: '', codigo: '', origem: '', horaOrigem: '', destino: '', horaDestino: '', meta: '' });
+    saveState();
+    renderVoos();
+  });
+  renderVoos();
+
+  // ---------- Hotéis (editável, lista dinâmica) ----------
+  const hoteisListEl = document.getElementById('hoteis-list');
+  function renderHoteis() {
+    hoteisListEl.innerHTML = '';
+    state.hoteis.forEach((h, idx) => {
+      const card = document.createElement('div');
+      card.className = 'card editable-card';
+      card.innerHTML = `
+        <div class="top-row">
+          <span class="idx-label">Hotel ${idx + 1}</span>
+          <button class="btn danger small" data-action="del-hotel">Remover</button>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label">Nome do hotel</label>
+            <input type="text" data-field="nome" value="${escapeAttr(h.nome)}" placeholder="Ex: 🏨 Nome do Hotel">
+          </div>
+          <div class="field">
+            <label class="field-label">Selo / cidade</label>
+            <input type="text" data-field="badge" value="${escapeAttr(h.badge)}" placeholder="Ex: Orlando">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label">Check-in</label>
+            <input type="text" data-field="checkin" value="${escapeAttr(h.checkin)}" placeholder="Ex: 23 nov, seg · 16:00">
+          </div>
+          <div class="field">
+            <label class="field-label">Check-out</label>
+            <input type="text" data-field="checkout" value="${escapeAttr(h.checkout)}" placeholder="Ex: 24 nov, ter · 11:00">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label">Diárias</label>
+            <input type="text" data-field="diarias" value="${escapeAttr(h.diarias)}" placeholder="Ex: 3">
+          </div>
+          <div class="field">
+            <label class="field-label">Confirmação</label>
+            <input type="text" data-field="confirmacao" value="${escapeAttr(h.confirmacao)}" placeholder="Nº da reserva">
+          </div>
+          <div class="field">
+            <label class="field-label">PIN</label>
+            <input type="text" data-field="pin" value="${escapeAttr(h.pin)}" placeholder="Ex: 9331">
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Endereço</label>
+          <div class="field-row" style="align-items:center;">
+            <input type="text" data-field="endereco" value="${escapeAttr(h.endereco)}" placeholder="Endereço completo" style="flex:1;">
+            <button type="button" class="btn small" data-action="open-maps" style="flex:none;">📍 Maps</button>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label">Telefone</label>
+            <input type="text" data-field="telefone" value="${escapeAttr(h.telefone)}" placeholder="+1 ...">
+          </div>
+          <div class="field">
+            <label class="field-label">Valor</label>
+            <input type="text" data-field="valor" value="${escapeAttr(h.valor)}" placeholder="Ex: R$ 1.700">
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Cancelamento grátis até</label>
+          <input type="text" data-field="cancelamento" value="${escapeAttr(h.cancelamento)}" placeholder="Ex: 19 nov, 18h">
+        </div>
+        <div class="field">
+          <label class="field-label">Observações (quarto, bônus, política extra...)</label>
+          <textarea data-field="observacoes" placeholder="Ex: quarto standard, shuttle grátis...">${escapeHtml(h.observacoes)}</textarea>
+        </div>
+        <div class="attach-zone"></div>
+      `;
+      card.querySelectorAll('[data-field]').forEach(inputEl => {
+        inputEl.addEventListener('input', () => {
+          h[inputEl.dataset.field] = inputEl.value;
+          saveState();
+        });
+      });
+      card.querySelector('[data-action="del-hotel"]').addEventListener('click', async () => {
+        if (await customConfirm('Remover este hotel?')) {
+          state.hoteis.splice(idx, 1);
+          saveState();
+          renderHoteis();
+        }
+      });
+      card.querySelector('[data-action="open-maps"]').addEventListener('click', () => {
+        const addr = card.querySelector('[data-field="endereco"]').value.trim();
+        if (!addr) { alert('Preencha o endereço primeiro.'); return; }
+        window.open('https://maps.apple.com/?q=' + encodeURIComponent(addr), '_blank');
+      });
+      setupAttachZone(h.id, card.querySelector('.attach-zone'), '+ Anexar reserva', 'Nenhuma reserva anexada ainda.');
+      hoteisListEl.appendChild(card);
+    });
+  }
+  document.getElementById('add-hotel-btn').addEventListener('click', () => {
+    state.hoteis.push({ id: 'hotel_' + uid(), nome: '', badge: '', checkin: '', checkout: '', diarias: '', confirmacao: '', pin: '', endereco: '', telefone: '', valor: '', cancelamento: '', observacoes: '' });
+    saveState();
+    renderHoteis();
+  });
+  renderHoteis();
+
+  const hotelNotasEl = document.getElementById('hotel-notas-gerais');
+  hotelNotasEl.value = state.hotelNotasGerais || '';
+  hotelNotasEl.addEventListener('input', () => {
+    state.hotelNotasGerais = hotelNotasEl.value;
+    saveState();
+  });
+
+  // ---------- Documentos (por viajante + Outros) ----------
+  const docTravelerSelectEl = document.getElementById('doc-traveler-select');
+  const docTitleEl = document.getElementById('doc-title');
+  const docListEl = document.getElementById('doc-list');
+  const docUploadBtn = document.getElementById('doc-upload-btn');
+  const docUploadInput = document.getElementById('doc-upload-input');
+
+  function docKey(name) { return 'doc_' + name; }
+
+  function docCategories() {
+    return state.travelers.concat(['Outros']);
+  }
+
+  function renderDocTravelerChips() {
+    docTravelerSelectEl.innerHTML = '';
+    docCategories().forEach(name => {
+      const removable = name !== 'Outros';
+      const chip = document.createElement('div');
+      chip.className = 'traveler-chip' + (name === state.activeDocTraveler ? ' active' : '');
+      chip.innerHTML = `<span>${escapeHtml(name)}</span>` + (removable ? `<span class="rm" data-action="rm">✕</span>` : '');
+      chip.querySelector('span:not(.rm)').addEventListener('click', () => {
+        state.activeDocTraveler = name;
+        saveState();
+        renderDocTravelerChips();
+        renderDocs();
+      });
+      if (removable) {
+        chip.querySelector('.rm').addEventListener('click', (e) => {
+          e.stopPropagation();
+          removeTravelerGlobal(name);
+        });
+      }
+      docTravelerSelectEl.appendChild(chip);
+    });
+  }
+
+  function renderDocs() {
+    const name = state.activeDocTraveler;
+    docTitleEl.textContent = `📄 Documentos — ${name}`;
+    renderAttachList(docKey(name), docListEl);
+  }
+
+  document.getElementById('add-traveler-btn-doc').addEventListener('click', () => {
+    const input = document.getElementById('new-traveler-name-doc');
+    addTravelerGlobal(input.value.trim());
+    input.value = '';
+  });
+
+  docUploadBtn.addEventListener('click', () => docUploadInput.click());
+  docUploadInput.addEventListener('change', async () => {
+    const key = docKey(state.activeDocTraveler);
+    if (!state.attachments[key]) state.attachments[key] = [];
+    for (const file of docUploadInput.files) {
+      const data = await fileToDataUrl(file);
+      const fileKey = uid();
+      try {
+        await idbSet(fileKey, data);
+        state.attachments[key].push({ name: file.name, fileKey });
+      } catch (e) {
+        alert('Não foi possível salvar o PDF "' + file.name + '". Tente um arquivo menor.');
+      }
+    }
+    saveState();
+    renderDocs();
+    docUploadInput.value = '';
+  });
+
+  renderDocTravelerChips();
+  renderDocs();
+
+  // ---------- Roteiro (dias com múltiplas atividades editáveis) ----------
+  const roteiroList = document.getElementById('roteiro-list');
+
+  function renderRoteiro() {
+    roteiroList.innerHTML = '';
+    state.roteiro.forEach((day, dayIdx) => {
+      const card = document.createElement('div');
+      card.className = 'day-card';
+
+      const header = document.createElement('div');
+      header.className = 'top-row';
+      header.innerHTML = `
+        <span class="day-idx">Dia ${dayIdx + 1}</span>
+        <button class="btn danger small" data-action="del-day">Remover dia</button>`;
+      header.querySelector('[data-action="del-day"]').addEventListener('click', async () => {
+        if (await customConfirm('Remover este dia e todas as atividades?')) {
+          state.roteiro.splice(dayIdx, 1);
+          saveState();
+          renderRoteiro();
+        }
+      });
+      card.appendChild(header);
+
+      const fieldsRow = document.createElement('div');
+      fieldsRow.className = 'field-row';
+      fieldsRow.innerHTML = `
+        <div class="field">
+          <label class="field-label">Data</label>
+          <input type="text" data-field="data" value="${escapeAttr(day.data)}" placeholder="Ex: 25/11">
+        </div>
+        <div class="field">
+          <label class="field-label">Tag do dia</label>
+          <input type="text" data-field="tag" value="${escapeAttr(day.tag)}" placeholder="Ex: Parque">
+        </div>`;
+      fieldsRow.querySelectorAll('[data-field]').forEach(inputEl => {
+        inputEl.addEventListener('input', () => {
+          day[inputEl.dataset.field] = inputEl.value;
+          saveState();
+        });
+      });
+      card.appendChild(fieldsRow);
+
+      const actsWrap = document.createElement('div');
+      day.atividades.forEach((act, actIdx) => {
+        const actCard = document.createElement('div');
+        actCard.className = 'activity-card';
+        actCard.innerHTML = `
+          <div class="top-row">
+            <span class="act-idx">Atividade ${actIdx + 1}</span>
+            <button class="btn danger small" data-action="del-act">Remover</button>
+          </div>
+          <div class="field">
+            <label class="field-label">Título</label>
+            <input type="text" data-field="titulo" value="${escapeAttr(act.titulo)}" placeholder="Ex: Magic Kingdom">
+          </div>
+          <div class="field">
+            <label class="field-label">Descrição</label>
+            <textarea data-field="descricao" placeholder="Detalhes, horários, ingressos...">${escapeHtml(act.descricao)}</textarea>
+          </div>
+          <div class="attach-zone-act"></div>
+          <div class="distance-note">
+            🚗 Distância até a próxima atividade:
+            <input type="text" data-field="distancia" value="${escapeAttr(act.distancia)}" placeholder="Ex: 12 km / 20 min">
+          </div>
+        `;
+        actCard.querySelectorAll('[data-field]').forEach(inputEl => {
+          inputEl.addEventListener('input', () => {
+            act[inputEl.dataset.field] = inputEl.value;
+            saveState();
+          });
+        });
+        actCard.querySelector('[data-action="del-act"]').addEventListener('click', () => {
+          if (day.atividades.length <= 1) { alert('Cada dia precisa ter ao menos 1 atividade. Remova o dia se não for mais necessário.'); return; }
+          day.atividades.splice(actIdx, 1);
+          saveState();
+          renderRoteiro();
+        });
+        const attachZone = actCard.querySelector('.attach-zone-act');
+        setupAttachZone('act_' + act.id, attachZone, '+ Anexar PDF (ingresso/show)');
+        actsWrap.appendChild(actCard);
+      });
+      card.appendChild(actsWrap);
+
+      const addActBtn = document.createElement('button');
+      addActBtn.className = 'btn small';
+      addActBtn.style.marginTop = '10px';
+      addActBtn.textContent = '+ Adicionar atividade a este dia';
+      addActBtn.addEventListener('click', () => {
+        day.atividades.push({ id: uid(), titulo: '', descricao: '', distancia: '' });
+        saveState();
+        renderRoteiro();
+      });
+      card.appendChild(addActBtn);
+
+      roteiroList.appendChild(card);
+    });
+  }
+
+  document.getElementById('add-day-btn').addEventListener('click', () => {
+    state.roteiro.push({ id: uid(), data: '', tag: '', atividades: [{ id: uid(), titulo: '', descricao: '', distancia: '' }] });
+    saveState();
+    renderRoteiro();
+  });
+
+  renderRoteiro();
+
+  // ---------- Tabela resumo do roteiro (modal) ----------
+  const roteiroTableOverlay = document.getElementById('roteiro-table-overlay');
+  const roteiroTableBody = document.getElementById('roteiro-table-body');
+
+  function buildRoteiroTable() {
+    if (state.roteiro.length === 0) {
+      roteiroTableBody.innerHTML = '<p style="font-family:sans-serif;">Nenhum dia cadastrado no roteiro ainda.</p>';
+      return;
+    }
+    let rows = '';
+    state.roteiro.forEach((day, dayIdx) => {
+      day.atividades.forEach((act, actIdx) => {
+        rows += `<tr>
+          ${actIdx === 0 ? `<td rowspan="${day.atividades.length}"><strong>Dia ${dayIdx + 1}</strong><br>${escapeHtml(day.data)}</td>
+          <td rowspan="${day.atividades.length}">${escapeHtml(day.tag)}</td>` : ''}
+          <td>${escapeHtml(act.titulo)}</td>
+          <td>${escapeHtml(act.descricao)}</td>
+          <td>${escapeHtml(act.distancia)}</td>
+        </tr>`;
+      });
+    });
+    roteiroTableBody.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Dia</th>
+            <th>Tag</th>
+            <th>Atividade</th>
+            <th>Descrição</th>
+            <th>Distância p/ próxima</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  document.getElementById('open-roteiro-table-btn').addEventListener('click', () => {
+    buildRoteiroTable();
+    roteiroTableOverlay.classList.add('open');
+  });
+  document.getElementById('roteiro-table-close').addEventListener('click', () => {
+    roteiroTableOverlay.classList.remove('open');
+  });
+
+  // ---------- Tabela resumo dos voos (modal) ----------
+  const voosTableOverlay = document.getElementById('voos-table-overlay');
+  const voosTableBody = document.getElementById('voos-table-body');
+
+  function buildVoosTable() {
+    if (state.voos.length === 0) {
+      voosTableBody.innerHTML = '<p style="font-family:sans-serif;">Nenhum voo cadastrado ainda.</p>';
+      return;
+    }
+    let rows = '';
+    state.voos.forEach((voo) => {
+      rows += `<tr>
+        <td>${escapeHtml(voo.trecho)}</td>
+        <td>${escapeHtml(voo.codigo)}</td>
+        <td><strong>${escapeHtml(voo.origem)}</strong><br>${escapeHtml(voo.horaOrigem)}</td>
+        <td><strong>${escapeHtml(voo.destino)}</strong><br>${escapeHtml(voo.horaDestino)}</td>
+        <td>${escapeHtml(voo.meta)}</td>
+      </tr>`;
+    });
+    voosTableBody.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Trecho</th>
+            <th>Voo</th>
+            <th>Origem</th>
+            <th>Destino</th>
+            <th>Observações</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  document.getElementById('open-voos-table-btn').addEventListener('click', () => {
+    buildVoosTable();
+    voosTableOverlay.classList.add('open');
+  });
+  document.getElementById('voos-table-close').addEventListener('click', () => {
+    voosTableOverlay.classList.remove('open');
+  });
+
+  // ---------- Checklist (por viajante, editável) ----------
+  const travelerSelectEl = document.getElementById('checklist-traveler-select');
+  const checklistItemsEl = document.getElementById('checklist-items');
+  const checklistTitleEl = document.getElementById('checklist-title');
+
+  // Funções globais de gerenciamento de viajantes — usadas tanto na aba
+  // Checklist quanto na aba Documentos, para manter tudo sincronizado.
+  function addTravelerGlobal(name) {
+    if (!name) return;
+    if (state.travelers.includes(name) || name === 'Outros') { alert('Esse nome já existe ou é reservado.'); return; }
+    state.travelers.push(name);
+    state.checklists[name] = [];
+    state.activeChecklistTraveler = name;
+    state.activeDocTraveler = name;
+    saveState();
+    refreshAllTravelerUI();
+  }
+
+  async function removeTravelerGlobal(name) {
+    if (state.travelers.length <= 1) { alert('Precisa haver pelo menos 1 viajante.'); return; }
+    if (!(await customConfirm(`Remover ${name}? Isso apaga o checklist e os documentos anexados dele(a).`))) return;
+    state.travelers = state.travelers.filter(t => t !== name);
+    delete state.checklists[name];
+    // Apaga também os PDFs desse viajante guardados no IndexedDB
+    const key = docKey(name);
+    const atts = state.attachments[key] || [];
+    for (const a of atts) { if (a.fileKey) { try { await idbDelete(a.fileKey); } catch (e) {} } }
+    delete state.attachments[key];
+    if (state.activeChecklistTraveler === name) state.activeChecklistTraveler = state.travelers[0];
+    if (state.activeDocTraveler === name) state.activeDocTraveler = state.travelers[0];
+    saveState();
+    refreshAllTravelerUI();
+  }
+
+  function refreshAllTravelerUI() {
+    renderTravelerChips();
+    renderChecklist();
+    renderExpenseTravelerOptions();
+    renderDocTravelerChips();
+    renderDocs();
+  }
+
+  function renderTravelerChips() {
+    travelerSelectEl.innerHTML = '';
+    state.travelers.forEach(name => {
+      const chip = document.createElement('div');
+      chip.className = 'traveler-chip' + (name === state.activeChecklistTraveler ? ' active' : '');
+      chip.innerHTML = `<span>${escapeHtml(name)}</span><span class="rm" data-action="rm">✕</span>`;
+      chip.querySelector('span:not(.rm)').addEventListener('click', () => {
+        state.activeChecklistTraveler = name;
+        saveState();
+        renderTravelerChips();
+        renderChecklist();
+        renderExpenseTravelerOptions();
+      });
+      chip.querySelector('.rm').addEventListener('click', (e) => {
+        e.stopPropagation();
+        removeTravelerGlobal(name);
+      });
+      travelerSelectEl.appendChild(chip);
+    });
+  }
+
+  document.getElementById('add-traveler-btn').addEventListener('click', () => {
+    const input = document.getElementById('new-traveler-name');
+    addTravelerGlobal(input.value.trim());
+    input.value = '';
+  });
+
+  function renderChecklist() {
+    const name = state.activeChecklistTraveler;
+    checklistTitleEl.textContent = `Checklist de ${name}`;
+    const items = state.checklists[name] || [];
+    checklistItemsEl.innerHTML = '';
+    items.forEach((item, idx) => {
+      const li = document.createElement('li');
+      if (item.done) li.classList.add('done');
+      const cbId = 'cb-' + name.replace(/\s/g,'') + '-' + idx;
+      li.innerHTML = `
+        <input type="checkbox" id="${cbId}" ${item.done ? 'checked' : ''}>
+        <label for="${cbId}">${escapeHtml(item.text)}</label>
+        <button class="btn danger small" data-action="rm-item">✕</button>`;
+      li.querySelector('input').addEventListener('change', (e) => {
+        item.done = e.target.checked;
+        li.classList.toggle('done', item.done);
+        saveState();
+      });
+      li.querySelector('[data-action="rm-item"]').addEventListener('click', () => {
+        items.splice(idx, 1);
+        saveState();
+        renderChecklist();
+      });
+      checklistItemsEl.appendChild(li);
+    });
+  }
+
+  document.getElementById('add-checklist-item-btn').addEventListener('click', () => {
+    const input = document.getElementById('new-checklist-item');
+    const text = input.value.trim();
+    if (!text) return;
+    const name = state.activeChecklistTraveler;
+    if (!state.checklists[name]) state.checklists[name] = [];
+    state.checklists[name].push({ text, done: false });
+    input.value = '';
+    saveState();
+    renderChecklist();
+  });
+
+  renderTravelerChips();
+  renderChecklist();
+
+  // ---------- Orçamento (USD) ----------
+  const budgetTotalInput = document.getElementById('budget-total');
+  const budgetRemainingEl = document.getElementById('budget-remaining');
+  const budgetSpentEl = document.getElementById('budget-spent');
+  const budgetFillEl = document.getElementById('budget-fill');
+  const expenseTravelerSelect = document.getElementById('expense-traveler');
+  const expenseListEl = document.getElementById('expense-list');
+  const expenseEmptyEl = document.getElementById('expense-empty');
+  const fxRateInput = document.getElementById('fx-rate');
+  const fxBrlInput = document.getElementById('fx-brl');
+  const fxResultEl = document.getElementById('fx-result');
+
+  if (state.budgetTotal != null) budgetTotalInput.value = state.budgetTotal;
+  if (state.fxRate != null) fxRateInput.value = state.fxRate;
+
+  budgetTotalInput.addEventListener('input', () => {
+    state.budgetTotal = budgetTotalInput.value === '' ? null : parseFloat(budgetTotalInput.value);
+    saveState();
+    renderBudgetSummary();
+  });
+
+  function updateFxResult() {
+    const rate = parseFloat(fxRateInput.value);
+    const brl = parseFloat(fxBrlInput.value);
+    if (!rate || !brl) { fxResultEl.textContent = 'US$ 0,00'; return; }
+    fxResultEl.textContent = fmtUSD(brl / rate);
+  }
+  fxRateInput.addEventListener('input', () => {
+    state.fxRate = fxRateInput.value === '' ? null : parseFloat(fxRateInput.value);
+    saveState();
+    updateFxResult();
+  });
+  fxBrlInput.addEventListener('input', updateFxResult);
+
+  function renderExpenseTravelerOptions() {
+    expenseTravelerSelect.innerHTML = '';
+    state.travelers.forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      expenseTravelerSelect.appendChild(opt);
+    });
+  }
+
+  function renderBudgetSummary() {
+    const total = state.budgetTotal || 0;
+    const spent = state.expenses.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+    const remaining = total - spent;
+    budgetSpentEl.textContent = fmtUSD(spent);
+    budgetRemainingEl.textContent = fmtUSD(remaining);
+    budgetRemainingEl.classList.toggle('neg', remaining < 0);
+    const pct = total > 0 ? Math.min(100, (spent / total) * 100) : 0;
+    budgetFillEl.style.width = pct + '%';
+    budgetFillEl.style.background = remaining < 0 ? 'var(--danger)' : 'var(--accent)';
+  }
+
+  function renderExpenses() {
+    expenseListEl.innerHTML = '';
+    if (state.expenses.length === 0) {
+      expenseEmptyEl.style.display = 'block';
+      return;
+    }
+    expenseEmptyEl.style.display = 'none';
+    state.expenses.slice().reverse().forEach((exp) => {
+      const realIdx = state.expenses.indexOf(exp);
+      const item = document.createElement('div');
+      item.className = 'expense-item';
+      item.innerHTML = `
+        <div>
+          <div><span class="cat-pill">${escapeHtml(exp.category)}</span><strong>${escapeHtml(exp.traveler)}</strong></div>
+          <div class="meta">${escapeHtml(exp.desc || 'Sem descrição')}</div>
+        </div>
+        <div class="amt">${fmtUSD(exp.amount)}</div>
+        <button class="btn danger small" data-action="del-exp" style="margin-left:8px;">✕</button>`;
+      item.querySelector('[data-action="del-exp"]').addEventListener('click', () => {
+        state.expenses.splice(realIdx, 1);
+        saveState();
+        renderExpenses();
+        renderBudgetSummary();
+      });
+      expenseListEl.appendChild(item);
+    });
+  }
+
+  document.getElementById('add-expense-btn').addEventListener('click', () => {
+    const traveler = expenseTravelerSelect.value;
+    const category = document.getElementById('expense-category').value;
+    const amount = parseFloat(document.getElementById('expense-amount').value);
+    const desc = document.getElementById('expense-desc').value.trim();
+    if (!amount || amount <= 0) { alert('Informe um valor válido.'); return; }
+    state.expenses.push({ traveler, category, amount, desc, date: new Date().toISOString() });
+    document.getElementById('expense-amount').value = '';
+    document.getElementById('expense-desc').value = '';
+    saveState();
+    renderExpenses();
+    renderBudgetSummary();
+  });
+
+  renderExpenseTravelerOptions();
+  renderExpenses();
+  renderBudgetSummary();
+  updateFxResult();
+
+  initFirebaseSync();
+
+  // Deixa o app abrir mesmo sem internet (útil viajando com roaming ruim).
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+  }
+</script>
+
+</body>
+</html>
