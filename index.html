@@ -1069,7 +1069,10 @@
   <div class="tab" id="roteiro">
     <div class="page-title-row">
       <div class="page-title">Roteiro</div>
-      <button class="btn" id="open-roteiro-table-btn">📋 Ver tabela resumo</button>
+      <div style="display:flex; gap:8px;">
+        <button class="btn" id="roteiro-suggestions-btn">🔎 Sugestões de roteiro</button>
+        <button class="btn" id="open-roteiro-table-btn">📋 Ver tabela resumo</button>
+      </div>
     </div>
     <div class="card">
       <button class="btn primary" id="add-day-btn">+ Adicionar dia</button>
@@ -2853,6 +2856,23 @@
     state.roteiro.push({ id: uid(), data: '', tag: '', atividades: [{ id: uid(), titulo: '', descricao: '', distancia: '' }] });
     saveState();
     renderRoteiro();
+  });
+
+  // Atalho pra pesquisa externa: como não existe uma API pública que "gera"
+  // roteiros prontos, o botão abre uma busca já pronta pelo destino que o
+  // cliente já preencheu no Início — economiza o trabalho de digitar o
+  // destino de novo, mas o roteiro em si continua sendo montado à mão.
+  // Usa busca do Google (não um link direto pro TripAdvisor): testado na prática,
+  // a busca interna do TripAdvisor ora bloqueia acesso automatizado ora não
+  // carrega resultado nenhum pra esse tipo de link direto — o Google traz
+  // TripAdvisor e outros guias de viagem juntos, de forma bem mais confiável.
+  document.getElementById('roteiro-suggestions-btn').addEventListener('click', () => {
+    const destino = (state.resumo.destinos || '').trim();
+    if (!destino) {
+      alert('Preencha o campo "Destinos" na aba Início primeiro, pra gente já buscar por esse lugar.');
+      return;
+    }
+    window.open('https://www.google.com/search?q=' + encodeURIComponent('roteiro de viagem para ' + destino), '_blank', 'noopener');
   });
 
   renderRoteiro();
