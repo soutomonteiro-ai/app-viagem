@@ -180,6 +180,22 @@
     transition: background .15s;
   }
   .trip-code-box:hover { background: rgba(255,255,255,.1); }
+  .sidebar-new-trip-btn {
+    display: block;
+    width: 100%;
+    margin-top: 8px;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 12px;
+    padding: 10px 12px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .sidebar-new-trip-btn:hover { background: rgba(255,255,255,.1); }
   .trip-code-label {
     font-size: 10px;
     text-transform: uppercase;
@@ -216,7 +232,6 @@
     transition: background .15s, transform .1s ease, opacity .1s ease;
   }
   .trip-footer-actions button:hover { border-color: var(--accent2); }
-  .trip-footer-actions button.new-trip-btn { color: var(--accent); border-color: var(--accent); }
   .trip-code-join {
     display: flex;
     gap: 6px;
@@ -474,6 +489,17 @@
   #account-modal-overlay.open #account-modal-box { transform: none; }
   .account-modal-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
   .account-modal-header h3 { margin: 0; font-size: 15px; color: var(--text); display: flex; align-items: center; gap: 6px; }
+  .account-modal-close-x {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-size: 20px;
+    line-height: 1;
+    padding: 4px 6px;
+    cursor: pointer;
+    flex: none;
+  }
+  .account-modal-close-x:hover { color: var(--text); }
   .account-modal-section { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
   .account-modal-section:first-of-type { margin-top: 14px; padding-top: 0; border-top: none; }
   .account-modal-section-title {
@@ -586,7 +612,9 @@
   .bottom-tabbar button:active,
   .trip-footer-actions button:active,
   .traveler-chip:active,
-  .hero-photo-btn:active {
+  .hero-photo-btn:active,
+  .sidebar-new-trip-btn:active,
+  .account-modal-close-x:active {
     transform: scale(0.96);
     opacity: .85;
   }
@@ -883,6 +911,7 @@
     <div class="trip-code-box" id="trip-code-toggle">
       <div class="trip-code-label"><svg class="trip-code-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>Compartilhar e gerenciar viagem</div>
     </div>
+    <button type="button" class="sidebar-new-trip-btn" id="new-trip-btn">＋ Iniciar nova viagem</button>
   </div>
 </aside>
 
@@ -1167,7 +1196,7 @@
   <div id="account-modal-box">
     <div class="account-modal-header">
       <h3><svg class="trip-code-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>Compartilhar e gerenciar viagem</h3>
-      <button type="button" class="btn" id="account-modal-close">✕ Fechar</button>
+      <button type="button" class="account-modal-close-x" id="account-modal-close">✕</button>
     </div>
 
     <div class="account-modal-section">
@@ -1180,7 +1209,6 @@
       <div class="trip-footer-actions">
         <button type="button" id="copy-trip-link-btn">🔗 Convidar (esta viagem)</button>
         <button type="button" id="invite-blank-btn">👥 Compartilhar App</button>
-        <button type="button" class="new-trip-btn" id="new-trip-btn">＋ Iniciar nova viagem</button>
         <button type="button" id="show-local-trips-btn">🔎 Viagens salvas neste celular</button>
       </div>
       <div class="trip-code-join">
