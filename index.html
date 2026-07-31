@@ -176,7 +176,10 @@
     padding: 12px;
     text-align: left;
     margin-top: 14px;
+    cursor: pointer;
+    transition: background .15s;
   }
+  .trip-code-box:hover { background: rgba(255,255,255,.1); }
   .trip-code-label {
     font-size: 10px;
     text-transform: uppercase;
@@ -192,58 +195,27 @@
     font-weight: 700;
     letter-spacing: .03em;
   }
-  .trip-code-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    cursor: pointer;
-  }
-  .trip-code-arrow {
-    flex: none;
-    color: #dbe1f5;
-    font-size: 20px;
-    font-weight: 700;
-    line-height: 1;
-    padding: 4px 6px;
-    transition: transform .2s ease;
-  }
-  .trip-code-arrow.open { transform: rotate(180deg); }
-  .trip-code-collapsible { display: none; margin-top: 12px; }
-  .trip-code-collapsible.open { display: block; }
   .trip-footer-actions { display: flex; flex-direction: column; gap: 6px; }
   .trip-footer-actions button {
-    background: rgba(255,255,255,.08);
-    color: #dbe1f5;
-    border: 1px solid rgba(255,255,255,.14);
+    background: var(--card2);
+    color: var(--accent2);
+    border: 1px solid var(--border);
     border-radius: 8px;
     padding: 7px 10px;
-    font-size: 11.5px;
+    font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     text-align: left;
     transition: background .15s, transform .1s ease, opacity .1s ease;
   }
-  .trip-footer-actions button:hover { background: rgba(255,255,255,.14); }
-  .trip-footer-actions button.new-trip-btn { color: #ffb199; border-color: rgba(255,122,61,.35); }
+  .trip-footer-actions button:hover { border-color: var(--accent2); }
+  .trip-footer-actions button.new-trip-btn { color: var(--accent); border-color: var(--accent); }
   .trip-code-join {
     display: flex;
     gap: 6px;
     margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px dashed rgba(255,255,255,.14);
   }
-  .trip-code-join input {
-    flex: 1;
-    min-width: 0;
-    background: rgba(255,255,255,.08);
-    color: #f2f4fb;
-    border: 1px solid rgba(255,255,255,.14);
-    border-radius: 8px;
-    padding: 7px 8px;
-    font-size: 11.5px;
-  }
-  .trip-code-join input::placeholder { color: #8b93ac; }
+  .trip-code-join input { flex: 1; min-width: 0; }
   .trip-code-join button {
     flex: none;
     background: var(--accent2);
@@ -251,7 +223,7 @@
     border: 1px solid var(--accent2);
     border-radius: 8px;
     padding: 7px 12px;
-    font-size: 11.5px;
+    font-size: 12px;
     font-weight: 700;
     cursor: pointer;
     transition: transform .1s ease, opacity .1s ease;
@@ -259,22 +231,13 @@
   .trip-code-join button:active { transform: scale(0.96); opacity: .85; }
 
   /* ---------------- Conta logada / sair ---------------- */
-  .account-logout-panel {
-    display: none;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px dashed rgba(255,255,255,.14);
-  }
-  .account-logout-panel.open { display: flex; }
-  #account-logout-email { font-size: 11px; color: #b7bfd8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .account-logout-panel { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  #account-logout-email { font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #account-logout-btn {
     flex: none;
-    background: rgba(255,255,255,.08);
-    color: #ffb199;
-    border: 1px solid rgba(255,122,61,.35);
+    background: var(--card2);
+    color: var(--danger);
+    border: 1px solid var(--danger);
     border-radius: 8px;
     padding: 6px 10px;
     font-size: 11px;
@@ -282,28 +245,16 @@
     cursor: pointer;
   }
 
-  /* ---------------- Painel do dono: autorizar/remover e-mails ---------------- */
-  .owner-authorize-panel {
-    display: none;
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px dashed rgba(255,255,255,.14);
-  }
-  .owner-authorize-panel.open { display: block; }
-  .owner-authorize-hint { font-size: 10.5px; color: #b7bfd8; margin: 0 0 8px; line-height: 1.4; }
-  .owner-authorize-form { display: flex; gap: 6px; margin-bottom: 8px; }
-  .owner-authorize-form input {
+  /* ---------------- Painel do admin: autorizar/remover clientes (global) ---------------- */
+  .admin-authorize-panel { display: none; }
+  .admin-authorize-panel.open { display: block; }
+  .admin-authorize-hint { font-size: 11px; color: var(--muted); margin: 0 0 8px; line-height: 1.4; }
+  .admin-authorize-form { display: flex; gap: 6px; margin-bottom: 8px; }
+  .admin-authorize-form input {
     flex: 1;
     min-width: 0;
-    background: rgba(255,255,255,.08);
-    color: #f2f4fb;
-    border: 1px solid rgba(255,255,255,.14);
-    border-radius: 8px;
-    padding: 7px 8px;
-    font-size: 11.5px;
   }
-  .owner-authorize-form input::placeholder { color: #8b93ac; }
-  .owner-authorize-form button {
+  .admin-authorize-form button {
     flex: none;
     background: var(--accent2);
     color: #fff;
@@ -314,20 +265,20 @@
     font-weight: 700;
     cursor: pointer;
   }
-  #owner-authorize-list { display: flex; flex-direction: column; gap: 5px; }
+  #admin-authorize-list { display: flex; flex-direction: column; gap: 5px; }
   .authorize-list-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    background: rgba(255,255,255,.06);
-    border: 1px solid rgba(255,255,255,.12);
+    background: var(--card2);
+    border: 1px solid var(--border);
     border-radius: 8px;
     padding: 6px 9px;
-    font-size: 11px;
-    color: #dbe1f5;
+    font-size: 12px;
+    color: var(--text);
   }
-  .authorize-list-item .owner-tag { color: var(--accent2); font-weight: 700; font-size: 10px; }
+  .authorize-list-item .self-tag { color: var(--accent2); font-weight: 700; font-size: 10px; }
   .authorize-list-item button {
     flex: none;
     background: transparent;
@@ -361,7 +312,9 @@
   }
   #auth-gate-box h2, #auth-denied-box h2 { margin: 0 0 8px; font-size: 18px; color: var(--text); }
   #auth-gate-box p, #auth-denied-box p { margin: 0 0 18px; font-size: 13px; color: var(--muted); line-height: 1.5; }
-  #auth-google-btn {
+  #auth-email-form { text-align: left; }
+  #auth-email-form .field { margin-bottom: 10px; }
+  #auth-email-submit-btn {
     width: 100%;
     background: var(--accent);
     color: #fff;
@@ -371,25 +324,8 @@
     font-size: 14px;
     font-weight: 700;
     cursor: pointer;
-    margin-bottom: 14px;
-  }
-  .auth-divider { font-size: 11px; color: var(--muted); margin: 0 0 14px; }
-  #auth-email-form { display: none; text-align: left; }
-  #auth-email-form.open { display: block; }
-  #auth-email-form .field { margin-bottom: 10px; }
-  #auth-email-submit-btn {
-    width: 100%;
-    background: var(--card2);
-    color: var(--accent2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 10px;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
     margin-top: 4px;
   }
-  #auth-email-toggle-link { display: block; text-align: center; font-size: 12px; color: var(--accent2); cursor: pointer; margin-top: 4px; }
   .auth-email-links { display: flex; justify-content: space-between; margin-top: 10px; font-size: 11.5px; }
   .auth-email-links a { color: var(--accent2); text-decoration: none; cursor: pointer; }
   #auth-gate-error { color: var(--danger); font-size: 12px; margin: 10px 0 0; min-height: 0; }
@@ -481,6 +417,42 @@
     border-radius: 999px;
     flex: none;
   }
+
+  /* ---------------- Modal "Compartilhar e gerenciar viagem" ---------------- */
+  #account-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(10,14,26,.55);
+    z-index: 1100;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  #account-modal-overlay.open { display: flex; }
+  #account-modal-box {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 20px;
+    max-width: 380px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0,0,0,.3);
+  }
+  .account-modal-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
+  .account-modal-header h3 { margin: 0; font-size: 15px; color: var(--text); }
+  .account-modal-section { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .account-modal-section:first-of-type { margin-top: 14px; padding-top: 0; border-top: none; }
+  .account-modal-section-title {
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--muted);
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .account-modal-section .trip-code-value { font-size: 15px; }
   .sidebar {
     background:
       linear-gradient(180deg, rgba(10,16,32,.55), rgba(19,27,46,.92) 55%, #131b2e 100%),
@@ -876,38 +848,9 @@
     <button data-tab="orcamento">💰 Orçamento</button>
   </nav>
   <div class="sidebar-footer">
-    <div class="trip-code-box">
-      <div class="trip-code-header" id="trip-code-toggle">
-        <div>
-          <div class="trip-code-label">🔗 Compartilhar e gerenciar viagem</div>
-          <div class="trip-code-value" id="trip-code-value">------</div>
-        </div>
-        <span class="trip-code-arrow" id="trip-code-arrow">▾</span>
-      </div>
-      <div class="trip-code-collapsible" id="trip-code-collapsible">
-        <div class="trip-footer-actions">
-          <button type="button" id="copy-trip-link-btn">🔗 Convidar (esta viagem)</button>
-          <button type="button" id="invite-blank-btn">👥 Compartilhar App</button>
-          <button type="button" class="new-trip-btn" id="new-trip-btn">＋ Iniciar nova viagem</button>
-          <button type="button" id="show-local-trips-btn">🔎 Viagens salvas neste celular</button>
-        </div>
-        <div class="trip-code-join">
-          <input type="text" id="join-trip-code-input" placeholder="Colar código recebido">
-          <button type="button" id="join-trip-code-btn">Entrar</button>
-        </div>
-        <div class="account-logout-panel" id="account-logout-panel">
-          <span id="account-logout-email"></span>
-          <button type="button" id="account-logout-btn">🚪 Sair</button>
-        </div>
-        <div class="owner-authorize-panel" id="owner-authorize-panel">
-          <p class="owner-authorize-hint">Só e-mails autorizados aqui conseguem abrir esta viagem.</p>
-          <div class="owner-authorize-form">
-            <input type="email" id="owner-authorize-email-input" placeholder="e-mail@exemplo.com">
-            <button type="button" id="owner-authorize-btn">Autorizar</button>
-          </div>
-          <div id="owner-authorize-list"></div>
-        </div>
-      </div>
+    <div class="trip-code-box" id="trip-code-toggle">
+      <div class="trip-code-label">🔗 Compartilhar e gerenciar viagem</div>
+      <div class="trip-code-value" id="trip-code-value">------</div>
     </div>
   </div>
 </aside>
@@ -1162,10 +1105,7 @@
 <div id="auth-gate-overlay">
   <div id="auth-gate-box">
     <h2>Entrar para continuar</h2>
-    <p>Esta viagem exige login para proteger os dados. Entre com Google ou com e-mail e senha.</p>
-    <button type="button" id="auth-google-btn">🔵 Entrar com Google</button>
-    <div class="auth-divider">ou</div>
-    <span id="auth-email-toggle-link">Entrar com e-mail e senha</span>
+    <p>Este app exige login para proteger os dados. Entre com seu e-mail e senha.</p>
     <form id="auth-email-form">
       <div class="field">
         <label class="field-label">E-mail</label>
@@ -1187,8 +1127,54 @@
 <div id="auth-denied-overlay">
   <div id="auth-denied-box">
     <h2>Acesso não autorizado</h2>
-    <p>A conta <span id="auth-denied-email"></span> ainda não tem permissão para ver esta viagem. Peça para quem criou a viagem te autorizar, ou tente com outra conta.</p>
+    <p>A conta <span id="auth-denied-email"></span> ainda não tem permissão para usar este app. Peça para quem te vendeu o acesso te autorizar, ou tente com outra conta.</p>
     <button type="button" id="auth-denied-switch-btn">Tentar outra conta</button>
+  </div>
+</div>
+
+<div id="account-modal-overlay">
+  <div id="account-modal-box">
+    <div class="account-modal-header">
+      <h3>🔗 Compartilhar e gerenciar viagem</h3>
+      <button type="button" class="btn" id="account-modal-close">✕ Fechar</button>
+    </div>
+
+    <div class="account-modal-section">
+      <div class="account-modal-section-title">Código desta viagem</div>
+      <div class="trip-code-value" id="trip-code-value-modal">------</div>
+    </div>
+
+    <div class="account-modal-section">
+      <div class="account-modal-section-title">Ações</div>
+      <div class="trip-footer-actions">
+        <button type="button" id="copy-trip-link-btn">🔗 Convidar (esta viagem)</button>
+        <button type="button" id="invite-blank-btn">👥 Compartilhar App</button>
+        <button type="button" class="new-trip-btn" id="new-trip-btn">＋ Iniciar nova viagem</button>
+        <button type="button" id="show-local-trips-btn">🔎 Viagens salvas neste celular</button>
+      </div>
+      <div class="trip-code-join">
+        <input type="text" id="join-trip-code-input" placeholder="Colar código recebido">
+        <button type="button" id="join-trip-code-btn">Entrar</button>
+      </div>
+    </div>
+
+    <div class="account-modal-section">
+      <div class="account-modal-section-title">Sua conta</div>
+      <div class="account-logout-panel" id="account-logout-panel">
+        <span id="account-logout-email"></span>
+        <button type="button" id="account-logout-btn">🚪 Sair</button>
+      </div>
+    </div>
+
+    <div class="account-modal-section admin-authorize-panel" id="admin-authorize-panel">
+      <div class="account-modal-section-title">Clientes autorizados a usar o app</div>
+      <p class="admin-authorize-hint">Só e-mails autorizados aqui conseguem entrar no app.</p>
+      <div class="admin-authorize-form">
+        <input type="email" id="admin-authorize-email-input" placeholder="e-mail@exemplo.com">
+        <button type="button" id="admin-authorize-btn">Autorizar</button>
+      </div>
+      <div id="admin-authorize-list"></div>
+    </div>
   </div>
 </div>
 
@@ -1463,11 +1449,11 @@
     renderBudgetSummary();
   }
 
-  // ---------- Login obrigatório + lista de e-mails autorizados pelo dono ----------
-  // Ninguém vê o conteúdo da viagem sem entrar com Google ou e-mail/senha, e só
-  // quem o dono autorizou (trips/<codigo>/meta/authorizedEmails) consegue de
-  // fato ler/escrever trips/<codigo>/state — isso é reforçado nas regras do
-  // Firebase, não só escondido atrás desta tela.
+  // ---------- Login obrigatório + lista global de clientes autorizados ----------
+  // Ninguém vê o conteúdo do app sem entrar com e-mail/senha, e só quem está em
+  // authorizedUsers (ou é o administrador) consegue de fato ler/escrever
+  // qualquer trips/<codigo>/state — isso é reforçado nas regras do Firebase,
+  // não só escondido atrás desta tela.
   const authGateOverlay = document.getElementById('auth-gate-overlay');
   const authDeniedOverlay = document.getElementById('auth-denied-overlay');
   const authGateError = document.getElementById('auth-gate-error');
@@ -1513,8 +1499,6 @@
     if (code === 'auth/wrong-password') return 'Senha incorreta.';
     if (code === 'auth/invalid-email') return 'E-mail inválido.';
     if (code === 'auth/weak-password') return 'Senha muito curta (mínimo 6 caracteres).';
-    if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') return '';
-    if (code === 'auth/popup-blocked') return 'O navegador bloqueou a janela de login. Permita pop-ups para este site e tente de novo.';
     return 'Não foi possível entrar. Tente novamente.';
   }
   function showAuthGateError(err) {
@@ -1546,31 +1530,6 @@
     }
   }
 
-  document.getElementById('auth-email-toggle-link').addEventListener('click', () => {
-    authEmailForm.classList.toggle('open');
-  });
-  document.getElementById('auth-google-btn').addEventListener('click', () => {
-    // Popup em vez de redirect: o login com Google precisa passar informação
-    // entre o domínio do app e o domínio do Firebase (viagem-63f1b.firebaseapp.com),
-    // e navegadores modernos vêm bloqueando cada vez mais essa troca via
-    // redirecionamento (cookies/armazenamento "de terceiros"). O popup evita
-    // isso, mas não funciona quando o app está instalado na tela de início —
-    // nesse caso, o e-mail/senha continua sendo a opção confiável.
-    const provider = new firebase.auth.GoogleAuthProvider();
-    const current = firebase.auth().currentUser;
-    const action = (current && current.isAnonymous) ? current.linkWithPopup(provider) : firebase.auth().signInWithPopup(provider);
-    action.then((result) => {
-      if (result && result.user) handleAuthenticatedUser(result.user);
-    }).catch((err) => {
-      if (err && err.code === 'auth/credential-already-in-use' && err.credential) {
-        firebase.auth().signInWithCredential(err.credential).then((result) => {
-          if (result && result.user) handleAuthenticatedUser(result.user);
-        }).catch(showAuthGateError);
-      } else {
-        showAuthGateError(err);
-      }
-    });
-  });
   authEmailForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = document.getElementById('auth-email-input').value.trim();
@@ -1599,33 +1558,21 @@
     if (fbRef) { fbRef.off(); fbRef = null; }
   }
 
-  // ---------- Dono da viagem + painel "quem pode acessar" ----------
-  function claimOwnershipAndAuthorize(user) {
-    const metaRef = firebase.database().ref('trips/' + TRIP_CODE + '/meta');
-    return metaRef.child('ownerId').transaction((current) => {
-      return (current === null || current === undefined) ? user.uid : current;
-    }).then((result) => {
-      const becameOwner = result.committed && result.snapshot.val() === user.uid;
-      if (becameOwner) {
-        return metaRef.child('authorizedEmails/' + sanitizeEmailKey(user.email)).set(true)
-          .then(() => ({ isOwner: true }));
-      }
-      return { isOwner: result.snapshot.val() === user.uid };
-    });
-  }
+  // ---------- Lista global de clientes autorizados a usar o app (só o admin gerencia) ----------
+  const ADMIN_EMAIL = 'soutomonteiro@gmail.com';
 
-  function setOwnerPanelVisible(isOwner) {
-    const panel = document.getElementById('owner-authorize-panel');
+  function setAdminPanelVisible(isAdmin) {
+    const panel = document.getElementById('admin-authorize-panel');
     if (!panel) return;
-    if (isOwner) { panel.classList.add('open'); renderAuthorizedList(); }
+    if (isAdmin) { panel.classList.add('open'); renderAdminAuthorizedList(); }
     else { panel.classList.remove('open'); }
   }
 
-  function renderAuthorizedList() {
-    const listEl = document.getElementById('owner-authorize-list');
+  function renderAdminAuthorizedList() {
+    const listEl = document.getElementById('admin-authorize-list');
     if (!listEl) return;
-    const metaRef = firebase.database().ref('trips/' + TRIP_CODE + '/meta');
-    metaRef.child('authorizedEmails').on('value', (snap) => {
+    const authorizedRef = firebase.database().ref('authorizedUsers');
+    authorizedRef.on('value', (snap) => {
       const emails = snap.val() || {};
       const selfKey = sanitizeEmailKey((firebase.auth().currentUser || {}).email);
       listEl.innerHTML = '';
@@ -1633,23 +1580,23 @@
         const isSelf = key === selfKey;
         const item = document.createElement('div');
         item.className = 'authorize-list-item';
-        item.innerHTML = '<span>' + escapeHtml(key.replace(/,/g, '.')) + (isSelf ? ' <span class="owner-tag">(você)</span>' : '') + '</span>' +
+        item.innerHTML = '<span>' + escapeHtml(key.replace(/,/g, '.')) + (isSelf ? ' <span class="self-tag">(você)</span>' : '') + '</span>' +
           (isSelf ? '' : '<button type="button" data-key="' + escapeAttr(key) + '">Remover</button>');
         listEl.appendChild(item);
       });
       listEl.querySelectorAll('button[data-key]').forEach((btn) => {
         btn.addEventListener('click', () => {
-          metaRef.child('authorizedEmails/' + btn.getAttribute('data-key')).remove();
+          authorizedRef.child(btn.getAttribute('data-key')).remove();
         });
       });
     });
   }
 
-  document.getElementById('owner-authorize-btn').addEventListener('click', () => {
-    const input = document.getElementById('owner-authorize-email-input');
+  document.getElementById('admin-authorize-btn').addEventListener('click', () => {
+    const input = document.getElementById('admin-authorize-email-input');
     const email = input.value.trim().toLowerCase();
     if (!email || !email.includes('@')) { alert('Digite um e-mail válido.'); return; }
-    firebase.database().ref('trips/' + TRIP_CODE + '/meta/authorizedEmails/' + sanitizeEmailKey(email)).set(true)
+    firebase.database().ref('authorizedUsers/' + sanitizeEmailKey(email)).set(true)
       .then(() => { input.value = ''; })
       .catch(() => alert('Não foi possível autorizar esse e-mail.'));
   });
@@ -1690,19 +1637,14 @@
   // Chamado sempre que temos certeza de que o usuário atual é uma conta real
   // (não anônima) — tanto pelo onAuthStateChanged quanto logo após um login
   // bem-sucedido. Necessário porque o Firebase às vezes NÃO dispara
-  // onAuthStateChanged de novo depois de um linkWithCredential/linkWithRedirect
-  // (a conta anônima é "promovida" no lugar, sem novo evento de mudança).
+  // onAuthStateChanged de novo depois de um linkWithCredential que promove a
+  // conta anônima pra conta real (sem novo evento de mudança).
   function handleAuthenticatedUser(user) {
     hideAuthGate();
     setAccountPanelVisible(user.email);
-    claimOwnershipAndAuthorize(user).then(({ isOwner }) => {
-      setOwnerPanelVisible(isOwner);
-      attachTripSync(syncStatusEl());
-      hideAuthDenied();
-    }).catch((err) => {
-      console.warn('Erro ao verificar autorização', err);
-      showAuthDenied(user.email);
-    });
+    setAdminPanelVisible(user.email === ADMIN_EMAIL);
+    attachTripSync(syncStatusEl());
+    hideAuthDenied();
   }
 
   function initFirebaseSync() {
@@ -1753,10 +1695,15 @@
   // ---------- Código da viagem: exibição, convite e nova viagem ----------
   const tripCodeValueEl = document.getElementById('trip-code-value');
   if (tripCodeValueEl) tripCodeValueEl.textContent = TRIP_CODE;
+  const tripCodeValueModalEl = document.getElementById('trip-code-value-modal');
+  if (tripCodeValueModalEl) tripCodeValueModalEl.textContent = TRIP_CODE;
 
+  const accountModalOverlay = document.getElementById('account-modal-overlay');
   document.getElementById('trip-code-toggle').addEventListener('click', () => {
-    document.getElementById('trip-code-collapsible').classList.toggle('open');
-    document.getElementById('trip-code-arrow').classList.toggle('open');
+    if (accountModalOverlay) accountModalOverlay.classList.add('open');
+  });
+  document.getElementById('account-modal-close').addEventListener('click', () => {
+    if (accountModalOverlay) accountModalOverlay.classList.remove('open');
   });
 
   document.getElementById('copy-trip-link-btn').addEventListener('click', async () => {
