@@ -168,6 +168,9 @@
     color: #7c86a5;
     text-align: center;
     margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
   }
   .trip-code-box {
     background: rgba(255,255,255,.06);
@@ -175,7 +178,6 @@
     border-radius: 12px;
     padding: 12px;
     text-align: left;
-    margin-top: 14px;
     cursor: pointer;
     transition: background .15s;
   }
@@ -183,7 +185,6 @@
   .sidebar-new-trip-btn {
     display: block;
     width: 100%;
-    margin-top: 8px;
     background: rgba(255,255,255,.06);
     border: 1px solid rgba(255,255,255,.1);
     border-radius: 12px;
@@ -196,6 +197,39 @@
     transition: background .15s;
   }
   .sidebar-new-trip-btn:hover { background: rgba(255,255,255,.1); }
+  .sidebar-account-panel {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 12px;
+    padding: 10px 12px;
+    text-align: left;
+  }
+  .sidebar-account-panel.open { display: flex; }
+  .sidebar-account-panel #account-logout-email {
+    font-size: 11px;
+    color: #8b93ac;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+  }
+  .sidebar-account-panel #account-logout-btn {
+    flex: none;
+    background: rgba(255,255,255,.06);
+    color: #ff6b81;
+    border: 1px solid rgba(255,107,129,.4);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .sidebar-account-panel #account-logout-btn:hover { background: rgba(255,255,255,.1); }
   .trip-code-label {
     font-size: 10px;
     text-transform: uppercase;
@@ -252,20 +286,6 @@
   }
   .trip-code-join button:active { transform: scale(0.96); opacity: .85; }
 
-  /* ---------------- Conta logada / sair ---------------- */
-  .account-logout-panel { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-  #account-logout-email { font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  #account-logout-btn {
-    flex: none;
-    background: var(--card2);
-    color: var(--danger);
-    border: 1px solid var(--danger);
-    border-radius: 8px;
-    padding: 6px 10px;
-    font-size: 11px;
-    font-weight: 700;
-    cursor: pointer;
-  }
 
   /* ---------------- Painel do admin: autorizar/remover clientes (global) ---------------- */
   .admin-authorize-panel { display: none; }
@@ -908,10 +928,14 @@
     <button data-tab="orcamento">💰 Orçamento</button>
   </nav>
   <div class="sidebar-footer">
+    <button type="button" class="sidebar-new-trip-btn" id="new-trip-btn">＋ Iniciar nova viagem</button>
     <div class="trip-code-box" id="trip-code-toggle">
       <div class="trip-code-label"><svg class="trip-code-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>Compartilhar e gerenciar viagem</div>
     </div>
-    <button type="button" class="sidebar-new-trip-btn" id="new-trip-btn">＋ Iniciar nova viagem</button>
+    <div class="sidebar-account-panel" id="account-logout-panel">
+      <span id="account-logout-email"></span>
+      <button type="button" id="account-logout-btn">🚪 Sair</button>
+    </div>
   </div>
 </aside>
 
@@ -1214,14 +1238,6 @@
       <div class="trip-code-join">
         <input type="text" id="join-trip-code-input" placeholder="Colar código recebido">
         <button type="button" id="join-trip-code-btn">Entrar</button>
-      </div>
-    </div>
-
-    <div class="account-modal-section">
-      <div class="account-modal-section-title">Sua conta</div>
-      <div class="account-logout-panel" id="account-logout-panel">
-        <span id="account-logout-email"></span>
-        <button type="button" id="account-logout-btn">🚪 Sair</button>
       </div>
     </div>
 
