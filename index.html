@@ -261,8 +261,20 @@
 
 
   /* ---------------- Painel do admin: autorizar/remover clientes (global) ---------------- */
-  .admin-authorize-panel { display: none; }
-  .admin-authorize-panel.open { display: block; }
+  .admin-authorize-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .admin-authorize-chevron { width: 16px; height: 16px; flex: none; color: var(--muted); transition: transform .15s ease; }
+  .admin-authorize-chevron.expanded { transform: rotate(180deg); }
+  .admin-authorize-body { display: none; margin-top: 10px; }
+  .admin-authorize-body.expanded { display: block; }
   .admin-authorize-hint { font-size: 11px; color: var(--muted); margin: 0 0 8px; line-height: 1.4; }
   .admin-authorize-form { display: flex; gap: 6px; margin-bottom: 8px; }
   .admin-authorize-form input {
@@ -1200,6 +1212,22 @@
     </div>
   </div>
 
+  <div class="main-account-panel" id="admin-authorize-panel">
+    <div class="main-account-panel-title">Administração</div>
+    <div class="admin-authorize-toggle" id="admin-authorize-toggle">
+      <span>Clientes autorizados a usar o app</span>
+      <svg class="admin-authorize-chevron" id="admin-authorize-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="admin-authorize-body" id="admin-authorize-body">
+      <p class="admin-authorize-hint">Só e-mails autorizados aqui conseguem entrar no app.</p>
+      <div class="admin-authorize-form">
+        <input type="email" id="admin-authorize-email-input" placeholder="e-mail@exemplo.com">
+        <button type="button" id="admin-authorize-btn">Autorizar</button>
+      </div>
+      <div id="admin-authorize-list"></div>
+    </div>
+  </div>
+
   <div class="main-account-panel" id="account-logout-panel">
     <div class="main-account-panel-title">Sua conta</div>
     <div class="main-account-panel-row">
@@ -1320,15 +1348,6 @@
       </div>
     </div>
 
-    <div class="account-modal-section admin-authorize-panel" id="admin-authorize-panel">
-      <div class="account-modal-section-title">Clientes autorizados a usar o app</div>
-      <p class="admin-authorize-hint">Só e-mails autorizados aqui conseguem entrar no app.</p>
-      <div class="admin-authorize-form">
-        <input type="email" id="admin-authorize-email-input" placeholder="e-mail@exemplo.com">
-        <button type="button" id="admin-authorize-btn">Autorizar</button>
-      </div>
-      <div id="admin-authorize-list"></div>
-    </div>
   </div>
 </div>
 
@@ -1879,6 +1898,13 @@
       });
     });
   }
+
+  // Lista de clientes vem fechada por padrão — evita confundir o próprio uso
+  // particular do admin no app com a lista de clientes autorizados.
+  document.getElementById('admin-authorize-toggle').addEventListener('click', () => {
+    document.getElementById('admin-authorize-body').classList.toggle('expanded');
+    document.getElementById('admin-authorize-chevron').classList.toggle('expanded');
+  });
 
   document.getElementById('admin-authorize-btn').addEventListener('click', () => {
     const input = document.getElementById('admin-authorize-email-input');
