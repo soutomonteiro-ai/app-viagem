@@ -186,12 +186,19 @@
     letter-spacing: .04em;
     color: #8b93ac;
     font-weight: 700;
-    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
   }
+  .trip-code-icon { width: 13px; height: 13px; flex: none; }
   .trip-code-value {
     font-family: monospace;
     font-size: 14px;
-    color: #f2f4fb;
+    color: var(--accent2);
+    background: var(--card2);
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 8px;
     font-weight: 700;
     letter-spacing: .03em;
   }
@@ -342,17 +349,24 @@
   }
 
   /* ---------------- Modal de confirmação (substitui o confirm() nativo) ---------------- */
+  /* z-index mais alto que os outros modais: um confirm() pode ser disparado
+     por uma ação dentro do modal de conta ou do modal de viagens salvas, e
+     precisa aparecer por cima deles, não atrás. */
   #confirm-modal-overlay {
-    display: none;
+    display: flex;
     position: fixed;
     inset: 0;
     background: rgba(10,14,26,.55);
-    z-index: 1100;
+    z-index: 1300;
     align-items: center;
     justify-content: center;
     padding: 20px;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity .16s ease;
   }
-  #confirm-modal-overlay.open { display: flex; }
+  #confirm-modal-overlay.open { opacity: 1; visibility: visible; pointer-events: auto; }
   #confirm-modal-box {
     background: var(--card);
     border-radius: 16px;
@@ -360,7 +374,10 @@
     max-width: 340px;
     width: 100%;
     box-shadow: 0 10px 40px rgba(0,0,0,.3);
+    transform: scale(.96) translateY(6px);
+    transition: transform .16s cubic-bezier(.2,.8,.3,1);
   }
+  #confirm-modal-overlay.open #confirm-modal-box { transform: none; }
   #confirm-modal-message {
     margin: 0 0 18px;
     font-size: 14.5px;
@@ -373,17 +390,22 @@
     justify-content: flex-end;
     gap: 8px;
   }
+  /* z-index acima do modal de conta: pode ser aberto a partir de dentro dele. */
   #trips-modal-overlay {
-    display: none;
+    display: flex;
     position: fixed;
     inset: 0;
     background: rgba(10,14,26,.55);
-    z-index: 1100;
+    z-index: 1200;
     align-items: center;
     justify-content: center;
     padding: 20px;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity .16s ease;
   }
-  #trips-modal-overlay.open { display: flex; }
+  #trips-modal-overlay.open { opacity: 1; visibility: visible; pointer-events: auto; }
   #trips-modal-box {
     background: var(--card);
     border-radius: 16px;
@@ -391,7 +413,10 @@
     max-width: 380px;
     width: 100%;
     box-shadow: 0 10px 40px rgba(0,0,0,.3);
+    transform: scale(.96) translateY(6px);
+    transition: transform .16s cubic-bezier(.2,.8,.3,1);
   }
+  #trips-modal-overlay.open #trips-modal-box { transform: none; }
   #trips-modal-box h3 { margin: 0 0 4px; font-size: 15px; color: var(--text); }
   .trips-modal-hint { margin: 0 0 14px; font-size: 12px; color: var(--muted); }
   #trips-modal-list { max-height: 45vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
@@ -420,7 +445,7 @@
 
   /* ---------------- Modal "Compartilhar e gerenciar viagem" ---------------- */
   #account-modal-overlay {
-    display: none;
+    display: flex;
     position: fixed;
     inset: 0;
     background: rgba(10,14,26,.55);
@@ -428,8 +453,12 @@
     align-items: center;
     justify-content: center;
     padding: 20px;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity .16s ease;
   }
-  #account-modal-overlay.open { display: flex; }
+  #account-modal-overlay.open { opacity: 1; visibility: visible; pointer-events: auto; }
   #account-modal-box {
     background: var(--card);
     border-radius: 16px;
@@ -439,9 +468,12 @@
     max-height: 85vh;
     overflow-y: auto;
     box-shadow: 0 10px 40px rgba(0,0,0,.3);
+    transform: scale(.96) translateY(6px);
+    transition: transform .16s cubic-bezier(.2,.8,.3,1);
   }
+  #account-modal-overlay.open #account-modal-box { transform: none; }
   .account-modal-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
-  .account-modal-header h3 { margin: 0; font-size: 15px; color: var(--text); }
+  .account-modal-header h3 { margin: 0; font-size: 15px; color: var(--text); display: flex; align-items: center; gap: 6px; }
   .account-modal-section { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
   .account-modal-section:first-of-type { margin-top: 14px; padding-top: 0; border-top: none; }
   .account-modal-section-title {
@@ -849,8 +881,7 @@
   </nav>
   <div class="sidebar-footer">
     <div class="trip-code-box" id="trip-code-toggle">
-      <div class="trip-code-label">🔗 Compartilhar e gerenciar viagem</div>
-      <div class="trip-code-value" id="trip-code-value">------</div>
+      <div class="trip-code-label"><svg class="trip-code-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>Compartilhar e gerenciar viagem</div>
     </div>
   </div>
 </aside>
@@ -1135,7 +1166,7 @@
 <div id="account-modal-overlay">
   <div id="account-modal-box">
     <div class="account-modal-header">
-      <h3>🔗 Compartilhar e gerenciar viagem</h3>
+      <h3><svg class="trip-code-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>Compartilhar e gerenciar viagem</h3>
       <button type="button" class="btn" id="account-modal-close">✕ Fechar</button>
     </div>
 
