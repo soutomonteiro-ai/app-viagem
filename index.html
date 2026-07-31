@@ -2131,6 +2131,32 @@
     });
   }
 
+  // ---------- Cópia na nuvem dos arquivos (PDFs e fotos), via Realtime Database ----------
+  // Ficam em trips/<code>/files/<fileKey>, separado de trips/<code>/state, porque
+  // o state inteiro é reenviado a cada edição de campo (ver scheduleFirebasePush)
+  // — colocar os PDFs ali dentro faria cada tecla digitada reenviar o PDF inteiro.
+  // O IndexedDB local continua sendo a cópia rápida/offline; isto aqui é só a
+  // cópia de backup que permite abrir o mesmo arquivo em outro aparelho.
+  function fbFileRef(fileKey) {
+    return firebase.database().ref('trips/' + TRIP_CODE + '/files/' + fileKey);
+  }
+  function fbFileSet(fileKey, data) {
+    return fbFileRef(fileKey).set(data);
+  }
+  function fbFileGet(fileKey) {
+    return fbFileRef(fileKey).once('value').then((snap) => snap.val());
+  }
+  function fbFileDelete(fileKey) {
+    return fbFileRef(fileKey).remove();
+  }
+  // Apaga do IndexedDB local e, em segundo plano (sem bloquear a UI nem exigir
+  // internet), tenta apagar a cópia na nuvem também.
+  async function deleteFileEverywhere(fileKey) {
+    if (!fileKey) return;
+    try { await idbDelete(fileKey); } catch (e) {}
+    fbFileDelete(fileKey).catch(() => {});
+  }
+
   // Reduz o tamanho de fotos (não de PDFs) antes de guardar, redimensionando para no máx. 1000px.
   function compressImage(file, maxWidth) {
     return new Promise((resolve, reject) => {
@@ -2222,6 +2248,14 @@
       data = state.heroImage; // formato antigo
     } else if (state.heroImage) {
       data = await idbGet('heroImage');
+      if (!data) {
+        try {
+          data = await fbFileGet('heroImage');
+          if (data) { try { await idbSet('heroImage', data); } catch (e) {} }
+        } catch (e) {}
+      } else {
+        fbFileSet('heroImage', data).catch(() => {});
+      }
     }
     if (data) {
       sidebarHeroEl.style.backgroundImage =
@@ -2244,6 +2278,7 @@
       state.heroImage = true;
       saveState();
       applyHeroImage();
+      fbFileSet('heroImage', data).catch(() => {});
     } catch (e) {
       alert('Não foi possível salvar essa foto.');
     }
@@ -2284,7 +2319,19 @@
 
     // Compatibilidade: anexos antigos guardavam o PDF direto (f.data);
     // os novos guardam só uma referência (f.fileKey) e o PDF fica no IndexedDB.
-    const data = f.data || await idbGet(f.fileKey);
+    let data = f.data || await idbGet(f.fileKey);
+    if (!data && f.fileKey) {
+      // Não está neste aparelho — pode ter sido anexado em outro. Busca na
+      // cópia da nuvem e, se achar, guarda de volta localmente pra próxima vez.
+      try {
+        data = await fbFileGet(f.fileKey);
+        if (data) { try { await idbSet(f.fileKey, data); } catch (e) {} }
+      } catch (e) {}
+    } else if (data && f.fileKey) {
+      // Já temos localmente: garante que a cópia na nuvem também existe
+      // (cura anexos antigos que nunca chegaram a subir, sem bloquear a abertura).
+      fbFileSet(f.fileKey, data).catch(() => {});
+    }
     if (!data) {
       pdfModalBody.innerHTML = '<p style="font-family:sans-serif;padding:20px;color:#333;">Não foi possível carregar este arquivo.</p>';
       return;
@@ -2389,7 +2436,7 @@
         openPdfModal(f, f.name);
       });
       item.querySelector('[data-action="del"]').addEventListener('click', async () => {
-        if (f.fileKey) { try { await idbDelete(f.fileKey); } catch (e) {} }
+        await deleteFileEverywhere(f.fileKey);
         state.attachments[id].splice(idx, 1);
         saveState();
         renderAttachList(id, container, emptyLabel);
@@ -2420,6 +2467,7 @@
         try {
           await idbSet(fileKey, data);
           state.attachments[id].push({ name: file.name, fileKey });
+          fbFileSet(fileKey, data).catch(() => {});
         } catch (e) {
           alert('Não foi possível salvar o PDF "' + file.name + '". Tente um arquivo menor.');
         }
@@ -2486,6 +2534,9 @@
       });
       card.querySelector('[data-action="del-voo"]').addEventListener('click', async () => {
         if (await customConfirm('Remover este voo?')) {
+          const atts = state.attachments[voo.id] || [];
+          for (const a of atts) { await deleteFileEverywhere(a.fileKey); }
+          delete state.attachments[voo.id];
           state.voos.splice(idx, 1);
           saveState();
           renderVoos();
@@ -2583,6 +2634,9 @@
       });
       card.querySelector('[data-action="del-hotel"]').addEventListener('click', async () => {
         if (await customConfirm('Remover este hotel?')) {
+          const atts = state.attachments[h.id] || [];
+          for (const a of atts) { await deleteFileEverywhere(a.fileKey); }
+          delete state.attachments[h.id];
           state.hoteis.splice(idx, 1);
           saveState();
           renderHoteis();
@@ -2669,6 +2723,7 @@
       try {
         await idbSet(fileKey, data);
         state.attachments[key].push({ name: file.name, fileKey });
+        fbFileSet(fileKey, data).catch(() => {});
       } catch (e) {
         alert('Não foi possível salvar o PDF "' + file.name + '". Tente um arquivo menor.');
       }
@@ -2697,6 +2752,12 @@
         <button class="btn danger small" data-action="del-day">Remover dia</button>`;
       header.querySelector('[data-action="del-day"]').addEventListener('click', async () => {
         if (await customConfirm('Remover este dia e todas as atividades?')) {
+          for (const act of day.atividades) {
+            const key = 'act_' + act.id;
+            const atts = state.attachments[key] || [];
+            for (const a of atts) { await deleteFileEverywhere(a.fileKey); }
+            delete state.attachments[key];
+          }
           state.roteiro.splice(dayIdx, 1);
           saveState();
           renderRoteiro();
@@ -2752,8 +2813,12 @@
             saveState();
           });
         });
-        actCard.querySelector('[data-action="del-act"]').addEventListener('click', () => {
+        actCard.querySelector('[data-action="del-act"]').addEventListener('click', async () => {
           if (day.atividades.length <= 1) { alert('Cada dia precisa ter ao menos 1 atividade. Remova o dia se não for mais necessário.'); return; }
+          const key = 'act_' + act.id;
+          const atts = state.attachments[key] || [];
+          for (const a of atts) { await deleteFileEverywhere(a.fileKey); }
+          delete state.attachments[key];
           day.atividades.splice(actIdx, 1);
           saveState();
           renderRoteiro();
@@ -2896,10 +2961,10 @@
     if (!(await customConfirm(`Remover ${name}? Isso apaga o checklist e os documentos anexados dele(a).`))) return;
     state.travelers = state.travelers.filter(t => t !== name);
     delete state.checklists[name];
-    // Apaga também os PDFs desse viajante guardados no IndexedDB
+    // Apaga também os PDFs desse viajante (localmente e na nuvem)
     const key = docKey(name);
     const atts = state.attachments[key] || [];
-    for (const a of atts) { if (a.fileKey) { try { await idbDelete(a.fileKey); } catch (e) {} } }
+    for (const a of atts) { await deleteFileEverywhere(a.fileKey); }
     delete state.attachments[key];
     if (state.activeChecklistTraveler === name) state.activeChecklistTraveler = state.travelers[0];
     if (state.activeDocTraveler === name) state.activeDocTraveler = state.travelers[0];
