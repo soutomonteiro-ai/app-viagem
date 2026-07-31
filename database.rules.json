@@ -1,0 +1,22 @@
+{
+  "rules": {
+    "authorizedUsers": {
+      ".read": "auth != null && auth.token.email === 'soutomonteiro@gmail.com'",
+      "$emailKey": {
+        ".write": "auth != null && auth.token.email === 'soutomonteiro@gmail.com'",
+        ".read": "auth != null && (auth.token.email === 'soutomonteiro@gmail.com' || auth.token.email.replace('.', ',').replace('.', ',').replace('.', ',').replace('.', ',').replace('.', ',') === $emailKey)",
+        "sessions": {
+          "$sessionId": {
+            ".write": "auth != null && (auth.token.email === 'soutomonteiro@gmail.com' || auth.token.email.replace('.', ',').replace('.', ',').replace('.', ',').replace('.', ',').replace('.', ',') === $emailKey)"
+          }
+        }
+      }
+    },
+    "trips": {
+      "$tripCode": {
+        ".read": "auth != null && (auth.token.email === 'soutomonteiro@gmail.com' || root.child('authorizedUsers/' + auth.token.email.replace('.', ',').replace('.', ',').replace('.', ',').replace('.', ',').replace('.', ',') + '/allowed').val() === true)",
+        ".write": "auth != null && (auth.token.email === 'soutomonteiro@gmail.com' || root.child('authorizedUsers/' + auth.token.email.replace('.', ',').replace('.', ',').replace('.', ',').replace('.', ',').replace('.', ',') + '/allowed').val() === true)"
+      }
+    }
+  }
+}

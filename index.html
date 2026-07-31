@@ -288,6 +288,7 @@
     color: var(--text);
   }
   .authorize-list-item .self-tag { color: var(--accent2); font-weight: 700; font-size: 10px; }
+  .authorize-list-item .session-count { color: var(--muted); font-size: 10.5px; margin-left: 6px; }
   .authorize-list-item button {
     flex: none;
     background: transparent;
@@ -298,8 +299,8 @@
     font-weight: 700;
   }
 
-  /* ---------------- Tela obrigatória de login / acesso negado ---------------- */
-  #auth-gate-overlay, #auth-denied-overlay {
+  /* ---------------- Tela obrigatória de login / acesso negado / limite de dispositivos ---------------- */
+  #auth-gate-overlay, #auth-denied-overlay, #auth-session-limit-overlay {
     display: none;
     position: fixed;
     inset: 0;
@@ -309,8 +310,8 @@
     justify-content: center;
     padding: 20px;
   }
-  #auth-gate-overlay.open, #auth-denied-overlay.open { display: flex; }
-  #auth-gate-box, #auth-denied-box {
+  #auth-gate-overlay.open, #auth-denied-overlay.open, #auth-session-limit-overlay.open { display: flex; }
+  #auth-gate-box, #auth-denied-box, #auth-session-limit-box {
     background: var(--card);
     border-radius: 16px;
     padding: 28px 24px;
@@ -319,8 +320,44 @@
     box-shadow: 0 10px 40px rgba(0,0,0,.4);
     text-align: center;
   }
-  #auth-gate-box h2, #auth-denied-box h2 { margin: 0 0 8px; font-size: 18px; color: var(--text); }
-  #auth-gate-box p, #auth-denied-box p { margin: 0 0 18px; font-size: 13px; color: var(--muted); line-height: 1.5; }
+  #auth-gate-box h2, #auth-denied-box h2, #auth-session-limit-box h2 { margin: 0 0 8px; font-size: 18px; color: var(--text); }
+  #auth-gate-box p, #auth-denied-box p, #auth-session-limit-box p { margin: 0 0 18px; font-size: 13px; color: var(--muted); line-height: 1.5; }
+  #auth-session-limit-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; text-align: left; }
+  .session-limit-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 12.5px;
+    color: var(--text);
+  }
+  .session-limit-item .session-item-info { display: flex; flex-direction: column; gap: 2px; }
+  .session-limit-item .session-item-date { color: var(--muted); font-size: 10.5px; }
+  .session-limit-item button {
+    flex: none;
+    background: var(--danger);
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  #auth-session-limit-cancel-btn {
+    background: var(--card2);
+    color: var(--accent2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
   #auth-email-form { text-align: left; }
   #auth-email-form .field { margin-bottom: 10px; }
   #auth-email-submit-btn {
@@ -1218,6 +1255,15 @@
   </div>
 </div>
 
+<div id="auth-session-limit-overlay">
+  <div id="auth-session-limit-box">
+    <h2>Limite de dispositivos atingido</h2>
+    <p>Este e-mail já está em uso em 3 dispositivos ao mesmo tempo. Desconecte um deles para continuar por aqui.</p>
+    <div id="auth-session-limit-list"></div>
+    <button type="button" id="auth-session-limit-cancel-btn">Cancelar</button>
+  </div>
+</div>
+
 <div id="account-modal-overlay">
   <div id="account-modal-box">
     <div class="account-modal-header">
@@ -1536,6 +1582,8 @@
   const authGateError = document.getElementById('auth-gate-error');
   const authEmailForm = document.getElementById('auth-email-form');
   const authDeniedEmailEl = document.getElementById('auth-denied-email');
+  const authSessionLimitOverlay = document.getElementById('auth-session-limit-overlay');
+  const authSessionLimitList = document.getElementById('auth-session-limit-list');
 
   function sanitizeEmailKey(email) {
     // Chaves do Realtime Database não podem ter ".", então trocamos por ",".
@@ -1554,6 +1602,11 @@
     if (authGateOverlay) authGateOverlay.classList.remove('open');
   }
   function hideAuthDenied() { if (authDeniedOverlay) authDeniedOverlay.classList.remove('open'); }
+  function showAuthSessionLimit() {
+    if (authSessionLimitOverlay) authSessionLimitOverlay.classList.add('open');
+    if (authGateOverlay) authGateOverlay.classList.remove('open');
+  }
+  function hideAuthSessionLimit() { if (authSessionLimitOverlay) authSessionLimitOverlay.classList.remove('open'); }
 
   function setAccountPanelVisible(email) {
     const panel = document.getElementById('account-logout-panel');
@@ -1568,6 +1621,7 @@
   }
   document.getElementById('account-logout-btn').addEventListener('click', () => {
     detachTripSync();
+    releaseOwnSession();
     firebase.auth().signOut();
   });
 
@@ -1628,6 +1682,7 @@
   });
   document.getElementById('auth-denied-switch-btn').addEventListener('click', () => {
     detachTripSync();
+    releaseOwnSession();
     firebase.auth().signOut();
   });
 
@@ -1637,6 +1692,129 @@
 
   // ---------- Lista global de clientes autorizados a usar o app (só o admin gerencia) ----------
   const ADMIN_EMAIL = 'soutomonteiro@gmail.com';
+
+  // ---------- Limite de dispositivos por e-mail autorizado (até 3 ao mesmo tempo) ----------
+  // Cada dispositivo/navegador tem um ID próprio salvo no localStorage. Ao logar, o app
+  // tenta registrar esse ID em authorizedUsers/<email>/sessions; se já houver 3 IDs
+  // diferentes lá (e este não for um deles), mostra uma tela para o usuário desconectar
+  // algum dos outros antes de continuar. O administrador não tem esse limite.
+  const DEVICE_SESSION_STORAGE_KEY = 'viagemDeviceSessionId';
+  let ownSessionRef = null;
+
+  function getDeviceSessionId() {
+    let id = localStorage.getItem(DEVICE_SESSION_STORAGE_KEY);
+    if (!id) {
+      id = (crypto.randomUUID ? crypto.randomUUID() : 'dev-' + Date.now() + '-' + Math.random().toString(16).slice(2));
+      localStorage.setItem(DEVICE_SESSION_STORAGE_KEY, id);
+    }
+    return id;
+  }
+
+  function getDeviceLabel() {
+    const ua = navigator.userAgent || '';
+    let os = 'Dispositivo';
+    if (/iPhone/.test(ua)) os = 'iPhone';
+    else if (/iPad/.test(ua)) os = 'iPad';
+    else if (/Android/.test(ua)) os = 'Android';
+    else if (/Macintosh/.test(ua)) os = 'Mac';
+    else if (/Windows/.test(ua)) os = 'Windows';
+    else if (/Linux/.test(ua)) os = 'Linux';
+    let browser = 'navegador';
+    if (/Edg\//.test(ua)) browser = 'Edge';
+    else if (/OPR\//.test(ua)) browser = 'Opera';
+    else if (/CriOS\//.test(ua) || /Chrome\//.test(ua)) browser = 'Chrome';
+    else if (/Firefox\//.test(ua)) browser = 'Firefox';
+    else if (/Safari\//.test(ua)) browser = 'Safari';
+    return browser + ' · ' + os;
+  }
+
+  function detachOwnSessionWatch() {
+    if (ownSessionRef) { ownSessionRef.off(); ownSessionRef = null; }
+  }
+
+  // Observa a própria vaga: se ela sumir (removida de outro dispositivo, ou pelo
+  // admin), esta sessão foi encerrada remotamente — desconecta este dispositivo.
+  function watchOwnSession(emailKey, sessionId) {
+    detachOwnSessionWatch();
+    ownSessionRef = firebase.database().ref('authorizedUsers/' + emailKey + '/sessions/' + sessionId);
+    ownSessionRef.on('value', (snap) => {
+      if (snap.exists()) return;
+      detachTripSync();
+      detachOwnSessionWatch();
+      authGateError.style.color = '';
+      authGateError.textContent = 'Sua sessão foi encerrada porque este dispositivo foi desconectado (limite de 3 atingido). Entre novamente se quiser continuar por aqui.';
+      firebase.auth().signOut();
+    });
+  }
+
+  // Libera a própria vaga de dispositivo (logout intencional). Desliga o watch
+  // antes de remover para não disparar a mensagem de "desconectado remotamente".
+  function releaseOwnSession() {
+    detachOwnSessionWatch();
+    const user = firebase.auth().currentUser;
+    if (user && !user.isAnonymous && user.email !== ADMIN_EMAIL) {
+      firebase.database().ref('authorizedUsers/' + sanitizeEmailKey(user.email) + '/sessions/' + getDeviceSessionId()).remove();
+    }
+  }
+
+  function renderSessionLimitList(emailKey, sessions) {
+    authSessionLimitList.innerHTML = '';
+    Object.keys(sessions).forEach((sid) => {
+      const info = sessions[sid] || {};
+      const item = document.createElement('div');
+      item.className = 'session-limit-item';
+      const dateStr = info.ts ? new Date(info.ts).toLocaleString('pt-BR') : '';
+      item.innerHTML =
+        '<div class="session-item-info"><span>' + escapeHtml(info.device || 'Dispositivo') + '</span>' +
+        '<span class="session-item-date">' + escapeHtml(dateStr) + '</span></div>' +
+        '<button type="button" data-sid="' + escapeAttr(sid) + '">Desconectar</button>';
+      authSessionLimitList.appendChild(item);
+    });
+    authSessionLimitList.querySelectorAll('button[data-sid]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        try {
+          await firebase.database().ref('authorizedUsers/' + emailKey + '/sessions/' + btn.getAttribute('data-sid')).remove();
+          hideAuthSessionLimit();
+          const user = firebase.auth().currentUser;
+          if (user) await handleAuthenticatedUser(user);
+        } catch (e) {
+          btn.disabled = false;
+        }
+      });
+    });
+  }
+
+  document.getElementById('auth-session-limit-cancel-btn').addEventListener('click', () => {
+    hideAuthSessionLimit();
+    detachTripSync();
+    firebase.auth().signOut();
+  });
+
+  // Garante uma vaga de dispositivo para este e-mail (até 3 simultâneas).
+  // Devolve true se pode prosseguir, false se a tela de limite está sendo exibida.
+  async function registerSession(email) {
+    if (email === ADMIN_EMAIL) return true; // administrador não tem limite de dispositivos
+    const emailKey = sanitizeEmailKey(email);
+    // Só registra sessão se o e-mail realmente estiver autorizado — caso contrário
+    // deixa o fluxo normal (attachTripSync -> PERMISSION_DENIED) mostrar a tela de
+    // "acesso não autorizado", sem gastar uma vaga de dispositivo à toa.
+    const allowedSnap = await firebase.database().ref('authorizedUsers/' + emailKey + '/allowed').once('value').catch(() => null);
+    if (!allowedSnap || allowedSnap.val() !== true) return true;
+    const sessionId = getDeviceSessionId();
+    const sessionsRef = firebase.database().ref('authorizedUsers/' + emailKey + '/sessions');
+    const snap = await sessionsRef.once('value');
+    const sessions = snap.val() || {};
+    const ids = Object.keys(sessions);
+    if (!ids.includes(sessionId) && ids.length >= 3) {
+      renderSessionLimitList(emailKey, sessions);
+      showAuthSessionLimit();
+      return false;
+    }
+    await sessionsRef.child(sessionId).set({ ts: firebase.database.ServerValue.TIMESTAMP, device: getDeviceLabel() });
+    watchOwnSession(emailKey, sessionId);
+    return true;
+  }
 
   function setAdminPanelVisible(isAdmin) {
     const panel = document.getElementById('admin-authorize-panel');
@@ -1655,9 +1833,12 @@
       listEl.innerHTML = '';
       Object.keys(emails).forEach((key) => {
         const isSelf = key === selfKey;
+        const entry = emails[key] || {};
+        const sessionCount = entry.sessions ? Object.keys(entry.sessions).length : 0;
         const item = document.createElement('div');
         item.className = 'authorize-list-item';
-        item.innerHTML = '<span>' + escapeHtml(key.replace(/,/g, '.')) + (isSelf ? ' <span class="self-tag">(você)</span>' : '') + '</span>' +
+        item.innerHTML = '<span>' + escapeHtml(key.replace(/,/g, '.')) + (isSelf ? ' <span class="self-tag">(você)</span>' : '') +
+          ' <span class="session-count">' + sessionCount + '/3 dispositivos</span></span>' +
           (isSelf ? '' : '<button type="button" data-key="' + escapeAttr(key) + '">Remover</button>');
         listEl.appendChild(item);
       });
@@ -1673,7 +1854,7 @@
     const input = document.getElementById('admin-authorize-email-input');
     const email = input.value.trim().toLowerCase();
     if (!email || !email.includes('@')) { alert('Digite um e-mail válido.'); return; }
-    firebase.database().ref('authorizedUsers/' + sanitizeEmailKey(email)).set(true)
+    firebase.database().ref('authorizedUsers/' + sanitizeEmailKey(email)).update({ allowed: true })
       .then(() => { input.value = ''; })
       .catch(() => alert('Não foi possível autorizar esse e-mail.'));
   });
@@ -1716,12 +1897,15 @@
   // bem-sucedido. Necessário porque o Firebase às vezes NÃO dispara
   // onAuthStateChanged de novo depois de um linkWithCredential que promove a
   // conta anônima pra conta real (sem novo evento de mudança).
-  function handleAuthenticatedUser(user) {
+  async function handleAuthenticatedUser(user) {
+    hideAuthDenied();
+    const gotSlot = await registerSession(user.email);
+    if (!gotSlot) return; // tela de limite de dispositivos está sendo exibida
     hideAuthGate();
+    hideAuthSessionLimit();
     setAccountPanelVisible(user.email);
     setAdminPanelVisible(user.email === ADMIN_EMAIL);
     attachTripSync(syncStatusEl());
-    hideAuthDenied();
   }
 
   function initFirebaseSync() {
