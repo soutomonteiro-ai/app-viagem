@@ -146,6 +146,9 @@
     flex: 1;
   }
   .sidebar nav button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     text-align: left;
     background: rgba(255,255,255,.06);
     color: #c7cee4;
@@ -156,6 +159,9 @@
     cursor: pointer;
     transition: background .15s, transform .1s ease, opacity .1s ease;
   }
+  .sidebar nav button .icon, .bottom-tabbar button .icon { display: flex; flex: none; }
+  .sidebar nav button .icon svg { width: 18px; height: 18px; }
+  .bottom-tabbar button .icon svg { width: 20px; height: 20px; }
   .sidebar nav button:hover { background: rgba(255,255,255,.12); }
   .sidebar nav button.active {
     background: var(--accent);
@@ -847,7 +853,7 @@
     white-space: nowrap;
     transition: transform .1s ease, opacity .1s ease, color .15s;
   }
-  .bottom-tabbar button .icon { font-size: 18px; line-height: 1; }
+  .bottom-tabbar button .icon { line-height: 1; }
   .bottom-tabbar button.active { color: var(--accent); }
 
   @media (max-width: 760px) {
@@ -858,6 +864,10 @@
     .sidebar nav { display: none; }
     .bottom-tabbar { display: flex; }
     main { padding: 20px 14px calc(78px + env(safe-area-inset-bottom)); }
+    /* "Iniciar nova viagem" e "Compartilhar e gerenciar viagem" só fazem sentido
+       na tela inicial — nas outras abas, no celular, só ocupariam espaço no topo. */
+    .sidebar-footer { display: none; }
+    body.on-home-tab .sidebar-footer { display: flex; }
   }
 
   /* Visualizador de PDF embutido (evita depender de abas/pop-ups) */
@@ -936,7 +946,7 @@
   .table-overlay-body th { background: var(--card2); font-weight: 700; position: sticky; top: 0; }
 </style>
 </head>
-<body>
+<body class="on-home-tab">
 
 <aside class="sidebar" id="app-sidebar">
   <div class="sidebar-hero" id="sidebar-hero">
@@ -954,13 +964,13 @@
     <img src="https://images.unsplash.com/photo-1508804185872-d7badad00f7d?auto=format&fit=crop&w=200&q=60" alt="">
   </div>
   <nav>
-    <button data-tab="resumo" class="active">🗺️ Resumo</button>
-    <button data-tab="voos">✈️ Voos</button>
-    <button data-tab="hoteis">🏨 Hotéis</button>
-    <button data-tab="documentos">📄 Documentos</button>
-    <button data-tab="roteiro">📅 Roteiro</button>
-    <button data-tab="checklist">✅ Checklist</button>
-    <button data-tab="orcamento">💰 Orçamento</button>
+    <button data-tab="resumo" class="active"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h3v-6h6v6h3a1 1 0 0 0 1-1V10"/></svg></span>Início</button>
+    <button data-tab="voos"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><path d="M22 2L15 22l-4-9-9-4 20-7z"/></svg></span>Voos</button>
+    <button data-tab="hoteis"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="1"/><line x1="8" y1="7" x2="8" y2="7"/><line x1="12" y1="7" x2="12" y2="7"/><line x1="16" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="8" y2="11"/><line x1="12" y1="11" x2="12" y2="11"/><line x1="16" y1="11" x2="16" y2="11"/><path d="M9 22v-4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4"/></svg></span>Hotéis</button>
+    <button data-tab="documentos"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg></span>Documentos</button>
+    <button data-tab="roteiro"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>Roteiro</button>
+    <button data-tab="checklist"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>Checklist</button>
+    <button data-tab="orcamento"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>Orçamento</button>
   </nav>
   <div class="sidebar-footer">
     <button type="button" class="sidebar-new-trip-btn" id="new-trip-btn">＋ Iniciar nova viagem</button>
@@ -971,13 +981,13 @@
 </aside>
 
 <nav class="bottom-tabbar" id="bottom-tabbar">
-  <button data-tab="resumo" class="active"><span class="icon">🗺️</span>Resumo</button>
-  <button data-tab="voos"><span class="icon">✈️</span>Voos</button>
-  <button data-tab="hoteis"><span class="icon">🏨</span>Hotéis</button>
-  <button data-tab="documentos"><span class="icon">📄</span>Docs</button>
-  <button data-tab="roteiro"><span class="icon">📅</span>Roteiro</button>
-  <button data-tab="checklist"><span class="icon">✅</span>Check</button>
-  <button data-tab="orcamento"><span class="icon">💰</span>Money</button>
+  <button data-tab="resumo" class="active"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h3v-6h6v6h3a1 1 0 0 0 1-1V10"/></svg></span>Início</button>
+  <button data-tab="voos"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><path d="M22 2L15 22l-4-9-9-4 20-7z"/></svg></span>Voos</button>
+  <button data-tab="hoteis"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="1"/><line x1="8" y1="7" x2="8" y2="7"/><line x1="12" y1="7" x2="12" y2="7"/><line x1="16" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="8" y2="11"/><line x1="12" y1="11" x2="12" y2="11"/><line x1="16" y1="11" x2="16" y2="11"/><path d="M9 22v-4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4"/></svg></span>Hotéis</button>
+  <button data-tab="documentos"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg></span>Docs</button>
+  <button data-tab="roteiro"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>Roteiro</button>
+  <button data-tab="checklist"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>Check</button>
+  <button data-tab="orcamento"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>Money</button>
 </nav>
 
 <main>
@@ -1007,10 +1017,6 @@
         <label class="field-label">Volta</label>
         <input type="text" id="resumo-volta" placeholder="Ex: 2 dez, via Miami → EZE → GIG">
       </div>
-    </div>
-    <div class="card">
-      <h3>🧭 Rota resumida</h3>
-      <textarea id="resumo-rota" style="min-height:110px;" placeholder="Ex: GIG → MIA → MCO (Orlando): 23/11 a 24/11..."></textarea>
     </div>
   </div>
 
@@ -1394,8 +1400,7 @@
       saida: '22 nov, GIG (Galeão)',
       chegada: '23 nov, Miami → Orlando',
       destinos: 'Orlando (5 noites) + Miami Beach (3 noites)',
-      volta: '2 dez, via Miami → EZE → GIG',
-      rota: 'GIG → MIA → MCO (Orlando): 23/11 a 24/11\nTraslado terrestre → Miami Beach: 24/11 a 27/11\nTraslado terrestre → Orlando: 27/11 a 01/12\nMCO → MIA → EZE → GIG: 01/12 a 02/12'
+      volta: '2 dez, via Miami → EZE → GIG'
     },
     roteiro: [
       { id: 'd1', data: '22/11', tag: 'Voo', atividades: [
@@ -1452,7 +1457,7 @@
     voos: [],
     hoteis: [],
     hotelNotasGerais: '',
-    resumo: { duracao: '', saida: '', chegada: '', destinos: '', volta: '', rota: '' },
+    resumo: { duracao: '', saida: '', chegada: '', destinos: '', volta: '' },
     roteiro: [],
     budgetTotal: null,
     fxRate: null,
@@ -1485,7 +1490,7 @@
     s.tripSubtitle = s.tripSubtitle || '';
     s.hotelNotasGerais = s.hotelNotasGerais || '';
     s.resumo = s.resumo && typeof s.resumo === 'object' ? s.resumo : {};
-    ['duracao','saida','chegada','destinos','volta','rota'].forEach(k => { if (!s.resumo[k]) s.resumo[k] = ''; });
+    ['duracao','saida','chegada','destinos','volta'].forEach(k => { if (!s.resumo[k]) s.resumo[k] = ''; });
     return s;
   }
 
@@ -2213,8 +2218,7 @@
     saida: 'resumo-saida',
     chegada: 'resumo-chegada',
     destinos: 'resumo-destinos',
-    volta: 'resumo-volta',
-    rota: 'resumo-rota'
+    volta: 'resumo-volta'
   };
   const resumoInputs = {};
   Object.keys(resumoFieldMap).forEach(key => {
@@ -2385,6 +2389,7 @@
       buttons.forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       document.getElementById(tab).classList.add('active');
+      document.body.classList.toggle('on-home-tab', tab === 'resumo');
     });
   });
 
