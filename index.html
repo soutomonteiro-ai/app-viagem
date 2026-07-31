@@ -1069,10 +1069,26 @@
   <div class="tab" id="roteiro">
     <div class="page-title-row">
       <div class="page-title">Roteiro</div>
-      <div style="display:flex; gap:8px;">
-        <button class="btn" id="roteiro-suggestions-btn">🔎 Sugestões de roteiro</button>
-        <button class="btn" id="open-roteiro-table-btn">📋 Ver tabela resumo</button>
+      <button class="btn" id="open-roteiro-table-btn">📋 Ver tabela resumo</button>
+    </div>
+    <div class="card">
+      <h3>🔎 Sugestões de roteiro</h3>
+      <p style="font-size:12px; color:var(--muted); margin:0 0 10px;">Preencha os dados da viagem e busque roteiros prontos em sites especializados.</p>
+      <div class="field">
+        <label class="field-label">Destino(s)</label>
+        <input type="text" id="roteiro-search-destino" placeholder="Ex: Orlando, Miami Beach">
       </div>
+      <div class="field-row">
+        <div class="field">
+          <label class="field-label">Dias</label>
+          <input type="number" id="roteiro-search-dias" min="1" placeholder="Ex: 8">
+        </div>
+        <div class="field">
+          <label class="field-label">Viajantes</label>
+          <input type="number" id="roteiro-search-viajantes" min="1" placeholder="Ex: 2">
+        </div>
+      </div>
+      <button class="btn primary" id="roteiro-search-btn">Buscar roteiros</button>
     </div>
     <div class="card">
       <button class="btn primary" id="add-day-btn">+ Adicionar dia</button>
@@ -2858,21 +2874,35 @@
     renderRoteiro();
   });
 
-  // Atalho pra pesquisa externa: como não existe uma API pública que "gera"
-  // roteiros prontos, o botão abre uma busca já pronta pelo destino que o
-  // cliente já preencheu no Início — economiza o trabalho de digitar o
-  // destino de novo, mas o roteiro em si continua sendo montado à mão.
-  // Usa busca do Google (não um link direto pro TripAdvisor): testado na prática,
-  // a busca interna do TripAdvisor ora bloqueia acesso automatizado ora não
-  // carrega resultado nenhum pra esse tipo de link direto — o Google traz
-  // TripAdvisor e outros guias de viagem juntos, de forma bem mais confiável.
-  document.getElementById('roteiro-suggestions-btn').addEventListener('click', () => {
-    const destino = (state.resumo.destinos || '').trim();
+  // Busca roteiros prontos em vez de tentar "gerar" um roteiro (não existe API
+  // pública pra isso). Como link direto pro TripAdvisor às vezes bloqueia
+  // acesso automatizado ou não carrega resultado (testado na prática), a
+  // busca passa pelo Google com "site:" — mantém a confiabilidade do Google
+  // mas restringe a esses 5 sites específicos de roteiros prontos, em vez de
+  // depender do que o Google decidir mostrar organicamente.
+  const ROTEIRO_SEARCH_SITES = [
+    'tripadvisor.com.br',
+    'lonelyplanet.com',
+    'indavoula.com.br',
+    'prefiroviajar.com.br',
+    'viagemeturismo.abril.com.br'
+  ];
+
+  document.getElementById('roteiro-search-btn').addEventListener('click', () => {
+    const destino = document.getElementById('roteiro-search-destino').value.trim();
+    const dias = document.getElementById('roteiro-search-dias').value.trim();
+    const viajantes = document.getElementById('roteiro-search-viajantes').value.trim();
     if (!destino) {
-      alert('Preencha o campo "Destinos" na aba Início primeiro, pra gente já buscar por esse lugar.');
+      alert('Preencha o campo "Destino(s)" pra gente buscar roteiros.');
       return;
     }
-    window.open('https://www.google.com/search?q=' + encodeURIComponent('roteiro de viagem para ' + destino), '_blank', 'noopener');
+    let termos = 'roteiro de viagem para ' + destino;
+    if (dias) termos += ' ' + dias + ' dias';
+    if (viajantes) termos += ' ' + viajantes + ' pessoas';
+
+    ROTEIRO_SEARCH_SITES.forEach((site) => {
+      window.open('https://www.google.com/search?q=' + encodeURIComponent('site:' + site + ' ' + termos), '_blank', 'noopener');
+    });
   });
 
   renderRoteiro();
