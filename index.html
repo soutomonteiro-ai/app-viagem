@@ -664,6 +664,7 @@
   }
   .btn:hover { border-color: var(--accent2); }
   .btn.primary { background: var(--accent); color: #fff; font-weight: 700; border-color: var(--accent); }
+  .btn.accent2 { background: var(--accent2); color: #fff; font-weight: 700; border-color: var(--accent2); }
   .btn.danger { background: transparent; color: var(--danger); border-color: var(--danger); }
   .btn.small { padding: 4px 9px; font-size: 11px; }
 
@@ -998,6 +999,11 @@
     <div class="card">
       <h3>📍 Visão geral da viagem</h3>
       <div class="field">
+        <label class="field-label">Data de embarque</label>
+        <input type="date" id="resumo-embarque">
+        <p style="font-size:11px; color:var(--muted); margin:4px 0 0;">Usada para a contagem regressiva no topo da tela.</p>
+      </div>
+      <div class="field">
         <label class="field-label">Duração</label>
         <input type="text" id="resumo-duracao" placeholder="Ex: 11 dias (8 dias nos EUA)">
       </div>
@@ -1072,7 +1078,7 @@
       <button class="btn" id="open-roteiro-table-btn">📋 Ver tabela resumo</button>
     </div>
     <div class="card">
-      <h3>🔎 Sugestões de roteiro</h3>
+      <h3><svg class="trip-code-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Sugestões de roteiro</h3>
       <p style="font-size:12px; color:var(--muted); margin:0 0 10px;">Preencha os dados da viagem e busque roteiros prontos em sites especializados.</p>
       <div class="field">
         <label class="field-label">Destino(s)</label>
@@ -1088,7 +1094,7 @@
           <input type="number" id="roteiro-search-viajantes" min="1" placeholder="Ex: 2">
         </div>
       </div>
-      <button class="btn primary" id="roteiro-search-btn">Buscar roteiros</button>
+      <button class="btn accent2" id="roteiro-search-btn">Buscar roteiros</button>
     </div>
     <div class="card">
       <button class="btn primary" id="add-day-btn">+ Adicionar dia</button>
@@ -1476,7 +1482,7 @@
     voos: [],
     hoteis: [],
     hotelNotasGerais: '',
-    resumo: { duracao: '', saida: '', chegada: '', destinos: '', volta: '' },
+    resumo: { embarque: '', duracao: '', saida: '', chegada: '', destinos: '', volta: '' },
     roteiro: [],
     budgetTotal: null,
     fxRate: null,
@@ -1509,7 +1515,7 @@
     s.tripSubtitle = s.tripSubtitle || '';
     s.hotelNotasGerais = s.hotelNotasGerais || '';
     s.resumo = s.resumo && typeof s.resumo === 'object' ? s.resumo : {};
-    ['duracao','saida','chegada','destinos','volta'].forEach(k => { if (!s.resumo[k]) s.resumo[k] = ''; });
+    ['embarque','duracao','saida','chegada','destinos','volta'].forEach(k => { if (!s.resumo[k]) s.resumo[k] = ''; });
     return s;
   }
 
@@ -2233,6 +2239,7 @@
 
   // ---------- Resumo (editável) ----------
   const resumoFieldMap = {
+    embarque: 'resumo-embarque',
     duracao: 'resumo-duracao',
     saida: 'resumo-saida',
     chegada: 'resumo-chegada',
@@ -2247,12 +2254,14 @@
     el.addEventListener('input', () => {
       state.resumo[key] = el.value;
       saveState();
+      if (key === 'embarque') updateCountdown();
     });
   });
   function renderResumo() {
     Object.keys(resumoFieldMap).forEach(key => {
       resumoInputs[key].value = state.resumo[key] || '';
     });
+    updateCountdown();
   }
 
   // ---------- Foto de fundo da barra lateral (editável) ----------
@@ -2413,11 +2422,15 @@
   });
 
   // ---------- Countdown ----------
-  const tripDate = new Date('2026-11-22T22:25:00-03:00');
+  // A data vem de state.resumo.embarque (campo editável na aba Início), não
+  // mais fixa no código — cada viagem/código tem a sua própria data.
   function updateCountdown() {
-    const now = new Date();
-    const diff = tripDate - now;
     const el = document.getElementById('countdown');
+    if (!el) return;
+    const embarque = state.resumo.embarque;
+    if (!embarque) { el.textContent = 'Defina a data de embarque na aba Início'; return; }
+    const tripDate = new Date(embarque + 'T00:00:00');
+    const diff = tripDate - new Date();
     if (diff <= 0) { el.textContent = 'Boa viagem! ✈️'; return; }
     const days = Math.floor(diff / (1000*60*60*24));
     el.textContent = `Faltam ${days} dias para embarcar`;
