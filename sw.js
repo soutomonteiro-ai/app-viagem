@@ -1,4 +1,4 @@
-const CACHE_NAME = 'viagem-app-v28';
+const CACHE_NAME = 'viagem-app-v29';
 const ASSETS = [
   './',
   './index.html',
@@ -11,8 +11,7 @@ const ASSETS = [
   'https://unpkg.com/@zxing/library@0.23.0/umd/index.min.js',
   'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js',
   'https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js',
-  'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js',
-  'https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&display=swap'
+  'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js'
 ];
 
 self.addEventListener('install', (event) => {

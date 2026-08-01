@@ -736,7 +736,7 @@
     transform: scale(0.96);
     opacity: .85;
   }
-  input[type=text], input[type=number], input[type=date], input[type=email], input[type=password], select, textarea {
+  input[type=text], input[type=number], input[type=date], input[type=time], input[type=email], input[type=password], select, textarea {
     background: var(--card2);
     color: var(--text);
     border: 1px solid var(--border);
@@ -1049,6 +1049,34 @@
   #print-export .pe-day { margin-bottom: 16px; break-inside: avoid; }
   #print-export .pe-day .pe-day-title { font-weight: 800; font-size: var(--fs-md); margin-bottom: 6px; }
   #print-export .pe-empty { font-size: var(--fs-sm); color: #666; font-style: italic; }
+  /* ---------------- Aviso de nova versão disponível ---------------- */
+  #update-banner {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: calc(10px + env(safe-area-inset-top)) 14px 10px;
+    background: var(--accent2);
+    color: #fff;
+    font-size: var(--fs-sm);
+    font-weight: 700;
+    box-shadow: 0 2px 10px rgba(0,0,0,.2);
+  }
+  #update-banner button {
+    background: #fff;
+    color: var(--accent2);
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 6px 12px;
+    font-size: var(--fs-sm);
+    font-weight: 700;
+    cursor: pointer;
+    flex: none;
+  }
+
   @media print {
     /* display:none (não visibility:hidden) pra tirar tudo do fluxo de
        layout de vez — com visibility o corpo escondido continuava alto e
@@ -1065,6 +1093,11 @@
 </style>
 </head>
 <body class="on-home-tab">
+
+<div id="update-banner">
+  <span>🔄 Nova versão do app disponível.</span>
+  <button type="button" id="update-reload-btn">Atualizar agora</button>
+</div>
 
 <aside class="sidebar" id="app-sidebar">
   <div class="sidebar-hero" id="sidebar-hero">
@@ -1681,6 +1714,25 @@
     s.hotelNotasGerais = s.hotelNotasGerais || '';
     s.resumo = s.resumo && typeof s.resumo === 'object' ? s.resumo : {};
     ['embarque','duracao','saida','chegada','destinos','volta'].forEach(k => { if (!s.resumo[k]) s.resumo[k] = ''; });
+    // Voos antigos guardavam horaOrigem/horaDestino como texto livre sem ano
+    // (ex: "22/11 · 22:25"). Migra uma única vez pros campos estruturados
+    // (origemData/origemHora/destinoData/destinoHora) usando o parser de
+    // melhor esforço que já existia pro alerta de viagem — o que não der
+    // pra extrair fica em branco, sem quebrar nada.
+    s.voos.forEach(v => {
+      if (v.origemData === undefined) {
+        const dt = parseVooDateTime(v.horaOrigem, s.resumo.embarque);
+        v.origemData = dt ? dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0') : '';
+        v.origemHora = dt ? String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0') : '';
+      }
+      if (v.destinoData === undefined) {
+        const dt = parseVooDateTime(v.horaDestino, s.resumo.embarque);
+        v.destinoData = dt ? dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0') : '';
+        v.destinoHora = dt ? String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0') : '';
+      }
+      delete v.horaOrigem;
+      delete v.horaDestino;
+    });
     return s;
   }
 
@@ -2316,7 +2368,7 @@
       ? state.voos.map(v => `
         <div class="pe-item">
           <div class="pe-title">${escapeHtml(v.trecho || '')}${v.codigo ? ' · ' + escapeHtml(v.codigo) : ''}</div>
-          <div class="pe-meta">${escapeHtml(v.origem || '?')} (${escapeHtml(v.horaOrigem || '?')}) → ${escapeHtml(v.destino || '?')} (${escapeHtml(v.horaDestino || '?')})</div>
+          <div class="pe-meta">${escapeHtml(v.origem || '?')} (${escapeHtml(fmtVooDateTime(v.origemData, v.origemHora))}) → ${escapeHtml(v.destino || '?')} (${escapeHtml(fmtVooDateTime(v.destinoData, v.destinoHora))})</div>
           ${v.meta ? `<div class="pe-meta">${escapeHtml(v.meta)}</div>` : ''}
         </div>`).join('')
       : '<div class="pe-empty">Nenhum voo cadastrado.</div>';
@@ -2735,12 +2787,12 @@
   updateCountdown();
 
   // ---------- Alerta de viagem (voo próximo / check-in) ----------
-  // horaOrigem/horaDestino são texto livre tipo "22/11 · 22:25" (sem ano —
-  // ninguém digita o ano num campo de voo). Como não temos ano, inferimos a
-  // partir do ano da data de embarque (ou do ano atual, na falta dela) e
-  // corrigimos pra o ano seguinte se a data cair muito no passado (viagem de
-  // virada de ano). Se não der pra extrair nem o dia/mês, retorna null — o
-  // voo simplesmente não participa do alerta, sem quebrar nada.
+  // Usada só como migração dos voos antigos (que guardavam horaOrigem como
+  // texto livre tipo "22/11 · 22:25", sem ano) pros campos estruturados
+  // origemData/origemHora — ver normalizeState(). Infere o ano a partir da
+  // data de embarque (ou do ano atual, na falta dela) e corrige pro ano
+  // seguinte se a data cair muito no passado (viagem de virada de ano). Se
+  // não der pra extrair nem o dia/mês, retorna null.
   function parseVooDateTime(text, referenceDateStr) {
     if (!text) return null;
     const m = text.match(/(\d{1,2})\/(\d{1,2})(?:[^\d]*(\d{1,2}):(\d{2}))?/);
@@ -2759,6 +2811,22 @@
     return candidate;
   }
 
+  // Combina os campos estruturados (input type=date/time, sempre YYYY-MM-DD
+  // e HH:MM quando preenchidos) num Date — sem heurística de ano, já que
+  // agora o ano vem certo do próprio campo de data.
+  function combineVooDateTime(dateStr, timeStr) {
+    if (!dateStr) return null;
+    return new Date(dateStr + 'T' + (timeStr || '00:00') + ':00');
+  }
+
+  function fmtVooDateTime(dateStr, timeStr) {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr + 'T00:00:00');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    return dd + '/' + mm + (timeStr ? ' ' + timeStr : '');
+  }
+
   function updateTripAlerts() {
     const el = document.getElementById('trip-alert-badge');
     if (!el) return;
@@ -2767,7 +2835,7 @@
 
     let soonest = null;
     state.voos.forEach(voo => {
-      const dt = parseVooDateTime(voo.horaOrigem, state.resumo.embarque);
+      const dt = combineVooDateTime(voo.origemData, voo.origemHora);
       if (!dt) return;
       const diff = dt - now;
       if (diff > 0 && diff <= MS_48H && (!soonest || dt < soonest.dt)) soonest = { voo, dt };
@@ -2971,12 +3039,30 @@
         <div class="flight-leg-edit">
           <div class="pt-edit">
             <input type="text" class="code-input" data-field="origem" value="${escapeAttr(voo.origem)}" placeholder="GIG">
-            <input type="text" data-field="horaOrigem" value="${escapeAttr(voo.horaOrigem)}" placeholder="22/11 · 22:25">
           </div>
           <div class="arrow">✈</div>
           <div class="pt-edit">
             <input type="text" class="code-input" data-field="destino" value="${escapeAttr(voo.destino)}" placeholder="MIA">
-            <input type="text" data-field="horaDestino" value="${escapeAttr(voo.horaDestino)}" placeholder="23/11 · 05:00">
+          </div>
+        </div>
+        <div class="field-row" style="margin-top:8px;">
+          <div class="field">
+            <label class="field-label">Data de partida</label>
+            <input type="date" data-field="origemData" value="${escapeAttr(voo.origemData)}">
+          </div>
+          <div class="field">
+            <label class="field-label">Hora de partida</label>
+            <input type="time" data-field="origemHora" value="${escapeAttr(voo.origemHora)}">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label">Data de chegada</label>
+            <input type="date" data-field="destinoData" value="${escapeAttr(voo.destinoData)}">
+          </div>
+          <div class="field">
+            <label class="field-label">Hora de chegada</label>
+            <input type="time" data-field="destinoHora" value="${escapeAttr(voo.destinoHora)}">
           </div>
         </div>
         <div class="field" style="margin-top:10px;">
@@ -2989,7 +3075,7 @@
         inputEl.addEventListener('input', () => {
           voo[inputEl.dataset.field] = inputEl.value;
           saveState();
-          if (inputEl.dataset.field === 'horaOrigem') updateTripAlerts();
+          if (inputEl.dataset.field === 'origemData' || inputEl.dataset.field === 'origemHora') updateTripAlerts();
         });
       });
       card.querySelector('[data-action="del-voo"]').addEventListener('click', async () => {
@@ -3008,7 +3094,7 @@
     updateTripAlerts();
   }
   document.getElementById('add-voo-btn').addEventListener('click', () => {
-    state.voos.push({ id: 'voo_' + uid(), trecho: '', codigo: '', origem: '', horaOrigem: '', destino: '', horaDestino: '', meta: '' });
+    state.voos.push({ id: 'voo_' + uid(), trecho: '', codigo: '', origem: '', origemData: '', origemHora: '', destino: '', destinoData: '', destinoHora: '', meta: '' });
     saveState();
     renderVoos();
   });
@@ -3019,7 +3105,7 @@
   // campo mora numa posição de caractere específica dentro do texto lido do
   // código de barras (normalmente PDF417 em papel, às vezes QR/Aztec em
   // cartões de embarque digitais). Não existe horário de voo codificado, só
-  // data (como "dia do ano", sem ano) — por isso horaOrigem só recebe a data.
+  // data (como "dia do ano", sem ano) — por isso só origemData é preenchida.
   function parseBCBP(raw) {
     if (!raw || raw[0] !== 'M' || raw.length < 53) return null;
     const pnr = raw.substring(23, 30).trim();
@@ -3033,7 +3119,7 @@
     return { pnr, origem, destino, carrier, flightNum, julianStr, seat };
   }
 
-  function julianToDateBR(julianStr) {
+  function julianToISODate(julianStr) {
     const doy = parseInt(julianStr, 10);
     if (!doy) return '';
     const now = new Date();
@@ -3041,7 +3127,7 @@
     const todayDoy = Math.floor((now - new Date(year, 0, 1)) / 86400000) + 1;
     if (doy < todayDoy - 30) year += 1;
     const d = new Date(year, 0, doy);
-    return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0');
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
 
   let boardingPassReader = null;
@@ -3069,9 +3155,11 @@
           trecho: 'Trecho ' + (state.voos.length + 1),
           codigo: parsed.carrier + ' ' + parsed.flightNum,
           origem: parsed.origem,
-          horaOrigem: julianToDateBR(parsed.julianStr),
+          origemData: julianToISODate(parsed.julianStr),
+          origemHora: '',
           destino: parsed.destino,
-          horaDestino: '',
+          destinoData: '',
+          destinoHora: '',
           meta: 'Assento ' + (parsed.seat || '—') + (parsed.pnr ? ' · PNR ' + parsed.pnr : '') + ' · via cartão de embarque escaneado'
         });
         saveState();
@@ -3474,8 +3562,8 @@
       rows += `<tr>
         <td>${escapeHtml(voo.trecho)}</td>
         <td>${escapeHtml(voo.codigo)}</td>
-        <td><strong>${escapeHtml(voo.origem)}</strong><br>${escapeHtml(voo.horaOrigem)}</td>
-        <td><strong>${escapeHtml(voo.destino)}</strong><br>${escapeHtml(voo.horaDestino)}</td>
+        <td><strong>${escapeHtml(voo.origem)}</strong><br>${escapeHtml(fmtVooDateTime(voo.origemData, voo.origemHora))}</td>
+        <td><strong>${escapeHtml(voo.destino)}</strong><br>${escapeHtml(fmtVooDateTime(voo.destinoData, voo.destinoHora))}</td>
         <td>${escapeHtml(voo.meta)}</td>
       </tr>`;
     });
@@ -3845,11 +3933,33 @@
   initFirebaseSync();
 
   // Deixa o app abrir mesmo sem internet (útil viajando com roaming ruim).
+  // Também avisa quando há uma versão nova publicada, pra não deixar o
+  // cliente "preso" numa versão antiga em cache sem saber.
   if ('serviceWorker' in navigator) {
+    // Se já existia um controller antes de qualquer coisa, uma troca de
+    // controller mais tarde é uma atualização de verdade — não o primeiro
+    // acesso do aparelho (que também dispara "controllerchange" por causa
+    // do clients.claim() no sw.js, mas não deve mostrar o aviso).
+    let hadController = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (hadController) showUpdateBanner();
+      hadController = true;
+    });
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch(() => {});
+      navigator.serviceWorker.register('sw.js').then((reg) => {
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') reg.update().catch(() => {});
+        });
+      }).catch(() => {});
     });
   }
+
+  function showUpdateBanner() {
+    const el = document.getElementById('update-banner');
+    if (el) el.style.display = 'flex';
+  }
+  const updateReloadBtn = document.getElementById('update-reload-btn');
+  if (updateReloadBtn) updateReloadBtn.addEventListener('click', () => window.location.reload());
 </script>
 
 </body>
