@@ -822,6 +822,8 @@
   }
   .converter-card .field-label { margin-top: 6px; }
   .converter-card .result { font-size: 15px; font-weight: 800; color: var(--accent2); margin-top: 6px; }
+  .fx-rate-row { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: var(--accent2); margin: 4px 0 8px; }
+  .fx-rate-row button { background: none; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-size: 13px; padding: 2px 8px; line-height: 1.4; }
   .budget-hero { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; }
   .budget-hero .left { flex: 1; min-width: 160px; }
   .budget-hero .right {
@@ -1211,14 +1213,18 @@
   <!-- ORCAMENTO -->
   <div class="tab" id="orcamento">
     <div class="budget-top-row">
-      <div class="page-title" style="margin:0;">💰 Orçamento (US$)</div>
+      <div class="page-title" style="margin:0;">💰 Orçamento</div>
       <div class="converter-card">
-        <label class="field-label">Conversor R$ → US$ (cotação do dia)</label>
+        <label class="field-label">Conversor de moeda (cotação automática)</label>
         <div class="field-row">
           <div class="field">
-            <label class="field-label">Cotação (R$ por US$1)</label>
-            <input type="number" id="fx-rate" step="0.0001" placeholder="Ex: 5.35">
+            <label class="field-label">Moeda estrangeira</label>
+            <select id="fx-currency"></select>
           </div>
+        </div>
+        <div class="fx-rate-row">
+          <span id="fx-rate-info">Buscando cotação...</span>
+          <button type="button" id="fx-refresh-btn" title="Atualizar cotação">🔄</button>
         </div>
         <div class="field-row">
           <div class="field">
@@ -1226,17 +1232,21 @@
             <input type="number" id="fx-brl" step="0.01" placeholder="0,00">
           </div>
           <div class="field">
-            <label class="field-label">Equivalente</label>
-            <div class="result" id="fx-result">US$ 0,00</div>
+            <label class="field-label" id="fx-foreign-label">Valor em moeda estrangeira</label>
+            <input type="number" id="fx-foreign" step="0.01" placeholder="0,00">
           </div>
         </div>
       </div>
     </div>
 
     <div class="card">
+      <div class="field" style="max-width:260px;">
+        <label class="field-label">Moeda corrente dos gastos</label>
+        <select id="budget-currency"></select>
+      </div>
       <div class="budget-hero">
         <div class="left">
-          <label class="field-label">Valor total disponível para a viagem (US$)</label>
+          <label class="field-label" id="budget-total-label">Valor total disponível para a viagem</label>
           <input type="number" id="budget-total" placeholder="Ex: 3000" step="0.01">
         </div>
         <div class="right">
@@ -1267,7 +1277,7 @@
           </select>
         </div>
         <div class="field">
-          <label class="field-label">Valor (US$)</label>
+          <label class="field-label" id="expense-amount-label">Valor</label>
           <input type="number" id="expense-amount" step="0.01" placeholder="0,00">
         </div>
       </div>
@@ -1551,7 +1561,8 @@
       ]}
     ],
     budgetTotal: null,
-    fxRate: null,
+    budgetCurrency: 'USD',
+    fxForeignCurrency: 'USD',
     expenses: [] // { traveler, category, amount, desc, date }
   };
 
@@ -1572,7 +1583,8 @@
     resumo: { embarque: '', duracao: '', saida: '', chegada: '', destinos: '', volta: '' },
     roteiro: [],
     budgetTotal: null,
-    fxRate: null,
+    budgetCurrency: 'USD',
+    fxForeignCurrency: 'USD',
     expenses: []
   };
 
@@ -1594,6 +1606,8 @@
     s.roteiro = Array.isArray(s.roteiro) ? s.roteiro : [];
     s.travelers = Array.isArray(s.travelers) && s.travelers.length ? s.travelers : ['Viajante 1'];
     s.expenses = Array.isArray(s.expenses) ? s.expenses : [];
+    s.budgetCurrency = s.budgetCurrency || 'USD';
+    s.fxForeignCurrency = s.fxForeignCurrency || 'USD';
     s.checklists = s.checklists && typeof s.checklists === 'object' ? s.checklists : {};
     s.attachments = s.attachments && typeof s.attachments === 'object' ? s.attachments : {};
     if (!s.activeChecklistTraveler || !s.travelers.includes(s.activeChecklistTraveler)) s.activeChecklistTraveler = s.travelers[0];
@@ -1684,7 +1698,10 @@
     renderChecklist();
     renderExpenseTravelerOptions();
     if (state.budgetTotal != null) budgetTotalInput.value = state.budgetTotal;
-    if (state.fxRate != null) fxRateInput.value = state.fxRate;
+    budgetCurrencySelect.value = state.budgetCurrency;
+    fxCurrencySelect.value = state.fxForeignCurrency;
+    fxForeignLabelEl.textContent = 'Valor em ' + fxCurrencySelect.value;
+    updateBudgetLabels();
     renderExpenses();
     renderBudgetSummary();
   }
@@ -2304,8 +2321,67 @@
     });
   }
 
-  function fmtUSD(v) {
-    return (v || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+  // ---------- Moedas (conversor + moeda corrente do orçamento) ----------
+  // Lista fixa dos códigos ISO 4217 (estável, não muda com frequência) — os
+  // nomes em português vêm do Intl.DisplayNames em vez de mantermos um mapa
+  // manual. Agrupamos por região só para organizar o <select>; qualquer
+  // código que não caia numa região cai em "Outras moedas".
+  const ALL_CURRENCY_CODES = ['AED','AFN','ALL','AMD','ANG','AOA','ARS','AUD','AWG','AZN','BAM','BBD','BDT','BGN','BHD','BIF','BMD','BND','BOB','BRL','BSD','BTN','BWP','BYN','BZD','CAD','CDF','CHF','CLP','CNY','COP','CRC','CUC','CUP','CVE','CZK','DJF','DKK','DOP','DZD','EGP','ERN','ETB','EUR','FJD','FKP','GBP','GEL','GHS','GIP','GMD','GNF','GTQ','GYD','HKD','HNL','HRK','HTG','HUF','IDR','ILS','INR','IQD','IRR','ISK','JMD','JOD','JPY','KES','KGS','KHR','KMF','KPW','KRW','KWD','KYD','KZT','LAK','LBP','LKR','LRD','LSL','LYD','MAD','MDL','MGA','MKD','MMK','MNT','MOP','MRU','MUR','MVR','MWK','MXN','MYR','MZN','NAD','NGN','NIO','NOK','NPR','NZD','OMR','PAB','PEN','PGK','PHP','PKR','PLN','PYG','QAR','RON','RSD','RUB','RWF','SAR','SBD','SCR','SDG','SEK','SGD','SHP','SLE','SOS','SRD','SSP','STN','SVC','SYP','SZL','THB','TJS','TMT','TND','TOP','TRY','TTD','TWD','TZS','UAH','UGX','USD','UYU','UZS','VES','VND','VUV','WST','XAF','XCD','XOF','XPF','YER','ZAR','ZMW'];
+
+  const CURRENCY_REGIONS = [
+    { label: 'América do Sul', codes: ['BRL','ARS','CLP','COP','PEN','UYU','BOB','PYG','VES','GYD','SRD'] },
+    { label: 'América do Norte e Caribe', codes: ['USD','CAD','MXN','GTQ','HNL','CRC','PAB','DOP','JMD','TTD','BSD','HTG','NIO','BZD'] },
+    { label: 'Europa', codes: ['EUR','GBP','CHF','SEK','NOK','DKK','PLN','CZK','HUF','RON','ISK','TRY','BGN','RSD','UAH'] },
+    { label: 'Ásia', codes: ['CNY','JPY','KRW','HKD','SGD','THB','IDR','MYR','PHP','VND','INR','TWD','PKR','AED','SAR','ILS'] },
+    { label: 'Oceania', codes: ['AUD','NZD','FJD','PGK','WST','TOP','VUV','SBD'] },
+    { label: 'África', codes: ['ZAR','EGP','NGN','KES','GHS','MAD'] }
+  ];
+
+  let currencyNamer = null;
+  try { currencyNamer = new Intl.DisplayNames(['pt'], { type: 'currency' }); } catch (e) {}
+  function currencyName(code) {
+    if (!currencyNamer) return code;
+    try { return currencyNamer.of(code); } catch (e) { return code; }
+  }
+
+  function populateCurrencySelect(selectEl, selectedCode) {
+    selectEl.innerHTML = '';
+    const used = new Set();
+    CURRENCY_REGIONS.forEach(region => {
+      const group = document.createElement('optgroup');
+      group.label = region.label;
+      region.codes.forEach(code => {
+        if (!ALL_CURRENCY_CODES.includes(code)) return;
+        used.add(code);
+        const opt = document.createElement('option');
+        opt.value = code;
+        opt.textContent = code + ' — ' + currencyName(code);
+        group.appendChild(opt);
+      });
+      selectEl.appendChild(group);
+    });
+    const rest = ALL_CURRENCY_CODES.filter(c => !used.has(c)).sort();
+    if (rest.length) {
+      const group = document.createElement('optgroup');
+      group.label = 'Outras moedas';
+      rest.forEach(code => {
+        const opt = document.createElement('option');
+        opt.value = code;
+        opt.textContent = code + ' — ' + currencyName(code);
+        group.appendChild(opt);
+      });
+      selectEl.appendChild(group);
+    }
+    selectEl.value = selectedCode;
+    if (selectEl.value !== selectedCode) selectEl.value = 'USD';
+  }
+
+  function fmtMoney(v, code) {
+    try {
+      return (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: code || 'USD' });
+    } catch (e) {
+      return (code || '') + ' ' + (v || 0).toFixed(2);
+    }
   }
 
   function escapeHtml(str) {
@@ -2514,6 +2590,7 @@
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       document.getElementById(tab).classList.add('active');
       document.body.classList.toggle('on-home-tab', tab === 'resumo');
+      if (tab === 'orcamento' && currentFxRate == null) refreshFxRate();
     });
   });
 
@@ -3346,20 +3423,27 @@
   renderTravelerChips();
   renderChecklist();
 
-  // ---------- Orçamento (USD) ----------
+  // ---------- Orçamento ----------
   const budgetTotalInput = document.getElementById('budget-total');
+  const budgetTotalLabelEl = document.getElementById('budget-total-label');
   const budgetRemainingEl = document.getElementById('budget-remaining');
   const budgetSpentEl = document.getElementById('budget-spent');
   const budgetFillEl = document.getElementById('budget-fill');
+  const budgetCurrencySelect = document.getElementById('budget-currency');
+  const expenseAmountLabelEl = document.getElementById('expense-amount-label');
   const expenseTravelerSelect = document.getElementById('expense-traveler');
   const expenseListEl = document.getElementById('expense-list');
   const expenseEmptyEl = document.getElementById('expense-empty');
-  const fxRateInput = document.getElementById('fx-rate');
-  const fxBrlInput = document.getElementById('fx-brl');
-  const fxResultEl = document.getElementById('fx-result');
+
+  populateCurrencySelect(budgetCurrencySelect, state.budgetCurrency);
+
+  function updateBudgetLabels() {
+    budgetTotalLabelEl.textContent = 'Valor total disponível para a viagem (' + state.budgetCurrency + ')';
+    expenseAmountLabelEl.textContent = 'Valor (' + state.budgetCurrency + ')';
+  }
+  updateBudgetLabels();
 
   if (state.budgetTotal != null) budgetTotalInput.value = state.budgetTotal;
-  if (state.fxRate != null) fxRateInput.value = state.fxRate;
 
   budgetTotalInput.addEventListener('input', () => {
     state.budgetTotal = budgetTotalInput.value === '' ? null : parseFloat(budgetTotalInput.value);
@@ -3367,18 +3451,69 @@
     renderBudgetSummary();
   });
 
-  function updateFxResult() {
-    const rate = parseFloat(fxRateInput.value);
-    const brl = parseFloat(fxBrlInput.value);
-    if (!rate || !brl) { fxResultEl.textContent = 'US$ 0,00'; return; }
-    fxResultEl.textContent = fmtUSD(brl / rate);
-  }
-  fxRateInput.addEventListener('input', () => {
-    state.fxRate = fxRateInput.value === '' ? null : parseFloat(fxRateInput.value);
+  budgetCurrencySelect.addEventListener('change', () => {
+    state.budgetCurrency = budgetCurrencySelect.value;
     saveState();
-    updateFxResult();
+    updateBudgetLabels();
+    renderBudgetSummary();
+    renderExpenses();
   });
-  fxBrlInput.addEventListener('input', updateFxResult);
+
+  // ---------- Conversor de moeda (cotação automática) ----------
+  const fxCurrencySelect = document.getElementById('fx-currency');
+  const fxRateInfoEl = document.getElementById('fx-rate-info');
+  const fxRefreshBtn = document.getElementById('fx-refresh-btn');
+  const fxBrlInput = document.getElementById('fx-brl');
+  const fxForeignInput = document.getElementById('fx-foreign');
+  const fxForeignLabelEl = document.getElementById('fx-foreign-label');
+
+  populateCurrencySelect(fxCurrencySelect, state.fxForeignCurrency);
+  fxForeignLabelEl.textContent = 'Valor em ' + fxCurrencySelect.value;
+
+  let currentFxRate = null; // R$ por 1 unidade da moeda estrangeira selecionada
+  let fxFetchInFlight = null;
+
+  async function refreshFxRate() {
+    const code = fxCurrencySelect.value;
+    fxRateInfoEl.textContent = 'Buscando cotação...';
+    const fetchPromise = (async () => {
+      const res = await fetch('https://open.er-api.com/v6/latest/' + code);
+      const data = await res.json();
+      if (data.result !== 'success' || !data.rates || !data.rates.BRL) throw new Error('fx');
+      return data.rates.BRL;
+    })();
+    fxFetchInFlight = fetchPromise;
+    try {
+      const rate = await fetchPromise;
+      if (fxFetchInFlight !== fetchPromise) return; // moeda trocada durante o fetch
+      currentFxRate = rate;
+      fxRateInfoEl.textContent = '1 ' + code + ' = ' + fmtMoney(currentFxRate, 'BRL');
+      recalcFx('foreign');
+    } catch (e) {
+      if (fxFetchInFlight !== fetchPromise) return;
+      fxRateInfoEl.textContent = 'Não foi possível buscar a cotação automaticamente.';
+    }
+  }
+
+  function recalcFx(source) {
+    if (currentFxRate == null) return;
+    if (source === 'brl') {
+      fxForeignInput.value = fxBrlInput.value === '' ? '' : (parseFloat(fxBrlInput.value) / currentFxRate).toFixed(2);
+    } else {
+      fxBrlInput.value = fxForeignInput.value === '' ? '' : (parseFloat(fxForeignInput.value) * currentFxRate).toFixed(2);
+    }
+  }
+
+  fxCurrencySelect.addEventListener('change', () => {
+    state.fxForeignCurrency = fxCurrencySelect.value;
+    saveState();
+    fxForeignLabelEl.textContent = 'Valor em ' + fxCurrencySelect.value;
+    currentFxRate = null;
+    refreshFxRate();
+  });
+  fxBrlInput.addEventListener('input', () => recalcFx('brl'));
+  fxForeignInput.addEventListener('input', () => recalcFx('foreign'));
+  fxRefreshBtn.addEventListener('click', refreshFxRate);
 
   function renderExpenseTravelerOptions() {
     expenseTravelerSelect.innerHTML = '';
@@ -3394,8 +3529,8 @@
     const total = state.budgetTotal || 0;
     const spent = state.expenses.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
     const remaining = total - spent;
-    budgetSpentEl.textContent = fmtUSD(spent);
-    budgetRemainingEl.textContent = fmtUSD(remaining);
+    budgetSpentEl.textContent = fmtMoney(spent, state.budgetCurrency);
+    budgetRemainingEl.textContent = fmtMoney(remaining, state.budgetCurrency);
     budgetRemainingEl.classList.toggle('neg', remaining < 0);
     const pct = total > 0 ? Math.min(100, (spent / total) * 100) : 0;
     budgetFillEl.style.width = pct + '%';
@@ -3418,7 +3553,7 @@
           <div><span class="cat-pill">${escapeHtml(exp.category)}</span><strong>${escapeHtml(exp.traveler)}</strong></div>
           <div class="meta">${escapeHtml(exp.desc || 'Sem descrição')}</div>
         </div>
-        <div class="amt">${fmtUSD(exp.amount)}</div>
+        <div class="amt">${fmtMoney(exp.amount, state.budgetCurrency)}</div>
         <button class="btn danger small" data-action="del-exp" style="margin-left:8px;">✕</button>`;
       item.querySelector('[data-action="del-exp"]').addEventListener('click', () => {
         state.expenses.splice(realIdx, 1);
@@ -3447,7 +3582,6 @@
   renderExpenseTravelerOptions();
   renderExpenses();
   renderBudgetSummary();
-  updateFxResult();
 
   initFirebaseSync();
 
