@@ -821,26 +821,6 @@
   .add-row input { flex: 1; }
 
   /* Orcamento */
-  .budget-top-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 14px;
-    flex-wrap: wrap;
-    margin-bottom: 16px;
-  }
-  .converter-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    padding: 12px 14px;
-    min-width: 230px;
-    flex: none;
-    margin-left: auto;
-    box-shadow: 0 2px 10px rgba(30,40,70,.05);
-  }
-  .converter-card .field-label { margin-top: 6px; }
-  .converter-card .result { font-size: var(--fs-md); font-weight: 800; color: var(--accent2); margin-top: 6px; }
   .fx-rate-row { display: flex; align-items: center; gap: 8px; font-size: var(--fs-sm); font-weight: 700; color: var(--accent2); margin: 4px 0 8px; }
   .fx-rate-row button { background: none; border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; font-size: var(--fs-base); padding: 2px 8px; line-height: 1.4; }
   .budget-hero { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; }
@@ -1231,29 +1211,28 @@
 
   <!-- ORCAMENTO -->
   <div class="tab" id="orcamento">
-    <div class="budget-top-row">
-      <div class="page-title" style="margin:0;">💰 Orçamento</div>
-      <div class="converter-card">
-        <label class="field-label">Conversor de moeda (cotação automática)</label>
-        <div class="field-row">
-          <div class="field">
-            <label class="field-label">Moeda estrangeira</label>
-            <select id="fx-currency"></select>
-          </div>
+    <div class="page-title">💰 Orçamento</div>
+
+    <div class="card">
+      <h3>🔄 Conversor de moeda <span class="badge">cotação automática</span></h3>
+      <div class="field-row">
+        <div class="field">
+          <label class="field-label">Moeda estrangeira</label>
+          <select id="fx-currency"></select>
         </div>
-        <div class="fx-rate-row">
-          <span id="fx-rate-info">Buscando cotação...</span>
-          <button type="button" id="fx-refresh-btn" title="Atualizar cotação">🔄</button>
+      </div>
+      <div class="fx-rate-row">
+        <span id="fx-rate-info">Buscando cotação...</span>
+        <button type="button" id="fx-refresh-btn" title="Atualizar cotação">🔄</button>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label class="field-label">Valor em R$</label>
+          <input type="number" id="fx-brl" step="0.01" placeholder="0,00">
         </div>
-        <div class="field-row">
-          <div class="field">
-            <label class="field-label">Valor em R$</label>
-            <input type="number" id="fx-brl" step="0.01" placeholder="0,00">
-          </div>
-          <div class="field">
-            <label class="field-label" id="fx-foreign-label">Valor em moeda estrangeira</label>
-            <input type="number" id="fx-foreign" step="0.01" placeholder="0,00">
-          </div>
+        <div class="field">
+          <label class="field-label" id="fx-foreign-label">Valor em moeda estrangeira</label>
+          <input type="number" id="fx-foreign" step="0.01" placeholder="0,00">
         </div>
       </div>
     </div>
