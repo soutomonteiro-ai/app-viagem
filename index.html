@@ -1192,6 +1192,14 @@
         <div id="admin-authorize-list"></div>
       </div>
     </div>
+
+    <div class="main-account-panel" id="account-logout-panel">
+      <div class="main-account-panel-title">Sua conta</div>
+      <div class="main-account-panel-row">
+        <span id="account-logout-email"></span>
+        <button type="button" id="account-logout-btn">🚪 Sair</button>
+      </div>
+    </div>
   </div>
 
   <!-- VOOS -->
@@ -1386,14 +1394,6 @@
     </div>
   </div>
 
-  <div class="main-account-panel" id="account-logout-panel">
-    <div class="main-account-panel-title">Sua conta</div>
-    <div class="main-account-panel-row">
-      <span id="account-logout-email"></span>
-      <button type="button" id="account-logout-btn">🚪 Sair</button>
-    </div>
-  </div>
-
   <footer class="app-credit">Trip Plan · Desenvolvido por EduardoRSMNunes</footer>
 </main>
 
@@ -1477,8 +1477,8 @@
 
 <div id="auth-denied-overlay">
   <div id="auth-denied-box">
-    <h2>Acesso não autorizado</h2>
-    <p>A conta <span id="auth-denied-email"></span> ainda não tem permissão para usar este app. Peça para quem te vendeu o acesso te autorizar, ou tente com outra conta.</p>
+    <h2>Conta aguardando autorização</h2>
+    <p>A conta <span id="auth-denied-email"></span> já existe, mas ainda está aguardando autorização para usar este app. Avise quem te vendeu o acesso pra liberar essa conta — assim que autorizada, é só entrar de novo normalmente. Também pode tentar outra conta enquanto isso.</p>
     <button type="button" id="auth-denied-switch-btn">Tentar outra conta</button>
   </div>
 </div>
@@ -2042,15 +2042,23 @@
   });
 
   // Garante uma vaga de dispositivo para este e-mail (até 3 simultâneas).
-  // Devolve true se pode prosseguir, false se a tela de limite está sendo exibida.
+  // Devolve true se pode prosseguir, false se alguma tela de bloqueio (conta
+  // não autorizada ou limite de dispositivos) está sendo exibida.
   async function registerSession(email) {
     if (email === ADMIN_EMAIL) return true; // administrador não tem limite de dispositivos
     const emailKey = sanitizeEmailKey(email);
-    // Só registra sessão se o e-mail realmente estiver autorizado — caso contrário
-    // deixa o fluxo normal (attachTripSync -> PERMISSION_DENIED) mostrar a tela de
-    // "acesso não autorizado", sem gastar uma vaga de dispositivo à toa.
+    // Checa autorização aqui, de forma direta e síncrona com o login, em vez
+    // de só confiar no PERMISSION_DENIED que viria depois ao tentar ler
+    // trips/<code> (isso é lento/indireto e pode ser "atropelado" pela outra
+    // chamada de handleAuthenticatedUser que roda em paralelo — o
+    // onAuthStateChanged e o retorno do login disparam os dois). Assim o
+    // cliente com conta ainda não liberada sempre vê a mensagem certa, e
+    // rápido, em vez de a tela simplesmente voltar pro login sem explicação.
     const allowedSnap = await firebase.database().ref('authorizedUsers/' + emailKey + '/allowed').once('value').catch(() => null);
-    if (!allowedSnap || allowedSnap.val() !== true) return true;
+    if (!allowedSnap || allowedSnap.val() !== true) {
+      showAuthDenied(email);
+      return false;
+    }
     const sessionId = getDeviceSessionId();
     const sessionsRef = firebase.database().ref('authorizedUsers/' + emailKey + '/sessions');
     const snap = await sessionsRef.once('value');
