@@ -18,6 +18,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://unpkg.com/@zxing/library@0.23.0/umd/index.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -120,6 +121,17 @@
     font-weight: 700;
     font-size: 11px;
     padding: 6px 12px;
+    border-radius: 999px;
+  }
+  .weather-badge {
+    display: none;
+    margin-top: 12px;
+    margin-left: 6px;
+    background: rgba(255,255,255,.12);
+    color: rgba(255,255,255,.85);
+    font-weight: 600;
+    font-size: 11px;
+    padding: 6px 10px;
     border-radius: 999px;
   }
   .sync-status {
@@ -926,6 +938,46 @@
     box-shadow: 0 2px 10px rgba(0,0,0,.35);
   }
 
+  /* Scanner de cartão de embarque (câmera) */
+  #boarding-pass-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #10131c;
+    z-index: 1000;
+    flex-direction: column;
+  }
+  #boarding-pass-overlay.open { display: flex; }
+  #boarding-pass-header {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: calc(10px + env(safe-area-inset-top)) 14px 10px;
+    background: #131b2e;
+    border-bottom: 1px solid rgba(255,255,255,.1);
+    color: #f2f4fb;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  #boarding-pass-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 14px;
+  }
+  #boarding-pass-video {
+    width: 100%;
+    max-width: 480px;
+    border-radius: 12px;
+    background: #000;
+  }
+  #boarding-pass-hint { color: rgba(255,255,255,.7); font-size: 12px; text-align: center; margin: 0; }
+
   .table-overlay {
     display: none;
     position: fixed;
@@ -968,6 +1020,7 @@
     <input type="text" class="title-input" id="trip-title-input" placeholder="Nome da viagem">
     <input type="text" class="subtitle-input" id="trip-subtitle-input" placeholder="Datas / destino">
     <div class="countdown" id="countdown">calculando...</div>
+    <span class="weather-badge" id="weather-badge"></span>
     <div class="sync-status" id="sync-status">🔄 conectando...</div>
   </div>
   <div class="landmark-strip">
@@ -1036,6 +1089,22 @@
         <input type="text" id="resumo-volta" placeholder="Ex: 2 dez, via Miami → EZE → GIG">
       </div>
     </div>
+
+    <div class="main-account-panel" id="admin-authorize-panel">
+      <div class="main-account-panel-title">Administração</div>
+      <div class="admin-authorize-toggle" id="admin-authorize-toggle">
+        <span>Clientes autorizados a usar o app</span>
+        <svg class="admin-authorize-chevron" id="admin-authorize-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="admin-authorize-body" id="admin-authorize-body">
+        <p class="admin-authorize-hint">Só e-mails autorizados aqui conseguem entrar no app.</p>
+        <div class="admin-authorize-form">
+          <input type="email" id="admin-authorize-email-input" placeholder="e-mail@exemplo.com">
+          <button type="button" id="admin-authorize-btn">Autorizar</button>
+        </div>
+        <div id="admin-authorize-list"></div>
+      </div>
+    </div>
   </div>
 
   <!-- VOOS -->
@@ -1043,6 +1112,7 @@
     <div class="page-title-row">
       <div class="page-title">Voos</div>
       <div style="display:flex; gap:8px;">
+        <button class="btn" id="scan-boarding-pass-btn"><svg class="trip-code-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="9" x2="7" y2="15"/><line x1="11" y1="9" x2="11" y2="15"/><line x1="15" y1="9" x2="15" y2="15"/><line x1="18" y1="9" x2="18" y2="15"/></svg> Escanear cartão</button>
         <button class="btn" id="open-voos-table-btn">📋 Resumo</button>
         <button class="btn primary" id="add-voo-btn">+ Adicionar voo</button>
       </div>
@@ -1212,22 +1282,6 @@
     </div>
   </div>
 
-  <div class="main-account-panel" id="admin-authorize-panel">
-    <div class="main-account-panel-title">Administração</div>
-    <div class="admin-authorize-toggle" id="admin-authorize-toggle">
-      <span>Clientes autorizados a usar o app</span>
-      <svg class="admin-authorize-chevron" id="admin-authorize-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-    </div>
-    <div class="admin-authorize-body" id="admin-authorize-body">
-      <p class="admin-authorize-hint">Só e-mails autorizados aqui conseguem entrar no app.</p>
-      <div class="admin-authorize-form">
-        <input type="email" id="admin-authorize-email-input" placeholder="e-mail@exemplo.com">
-        <button type="button" id="admin-authorize-btn">Autorizar</button>
-      </div>
-      <div id="admin-authorize-list"></div>
-    </div>
-  </div>
-
   <div class="main-account-panel" id="account-logout-panel">
     <div class="main-account-panel-title">Sua conta</div>
     <div class="main-account-panel-row">
@@ -1245,6 +1299,17 @@
     <button class="btn primary" id="pdf-modal-close">✕ Fechar</button>
   </div>
   <div id="pdf-modal-body"></div>
+</div>
+
+<div id="boarding-pass-overlay">
+  <div id="boarding-pass-header">
+    <span>Escanear cartão de embarque</span>
+    <button class="btn primary" id="boarding-pass-cancel-btn">✕ Cancelar</button>
+  </div>
+  <div id="boarding-pass-body">
+    <video id="boarding-pass-video" autoplay muted playsinline></video>
+    <p id="boarding-pass-hint">Aponte para o código de barras (PDF417) do cartão de embarque.</p>
+  </div>
 </div>
 
 <div id="roteiro-table-overlay" class="table-overlay">
@@ -2281,6 +2346,7 @@
       state.resumo[key] = el.value;
       saveState();
       if (key === 'embarque') updateCountdown();
+      if (key === 'destinos') scheduleWeatherUpdate();
     });
   });
   function renderResumo() {
@@ -2288,6 +2354,7 @@
       resumoInputs[key].value = state.resumo[key] || '';
     });
     updateCountdown();
+    updateWeatherBadge();
   }
 
   // ---------- Foto de fundo da barra lateral (editável) ----------
@@ -2463,6 +2530,59 @@
   }
   updateCountdown();
 
+  // ---------- Previsão do tempo (discreta, ao lado da contagem) ----------
+  // Usa o campo "Destinos" da aba Início — nunca é armazenada no state/Firebase,
+  // é só buscada de novo a cada carregamento (dado sempre atual, sem custo de
+  // sincronização). APIs gratuitas e sem chave (Open-Meteo).
+  const WEATHER_ICONS = {
+    0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️',
+    45: '🌫️', 48: '🌫️',
+    51: '🌦️', 53: '🌦️', 55: '🌦️',
+    61: '🌧️', 63: '🌧️', 65: '🌧️',
+    71: '🌨️', 73: '🌨️', 75: '🌨️',
+    80: '🌦️', 81: '🌧️', 82: '⛈️',
+    95: '⛈️', 96: '⛈️', 99: '⛈️'
+  };
+  let lastWeatherDestino = null;
+  let weatherFetchTimer = null;
+
+  function extractPrimaryDestino(text) {
+    if (!text) return '';
+    return text.split(/[+,(]/)[0].trim();
+  }
+
+  async function updateWeatherBadge() {
+    const el = document.getElementById('weather-badge');
+    if (!el) return;
+    const destino = extractPrimaryDestino(state.resumo.destinos);
+    if (destino === lastWeatherDestino) return;
+    lastWeatherDestino = destino;
+    if (!destino) { el.style.display = 'none'; el.textContent = ''; return; }
+    try {
+      const geoRes = await fetch('https://geocoding-api.open-meteo.com/v1/search?name=' + encodeURIComponent(destino) + '&count=1&language=pt&format=json');
+      const geoData = await geoRes.json();
+      const place = geoData.results && geoData.results[0];
+      if (!place) { el.style.display = 'none'; el.textContent = ''; return; }
+      const wRes = await fetch('https://api.open-meteo.com/v1/forecast?latitude=' + place.latitude + '&longitude=' + place.longitude + '&current=temperature_2m,weather_code&timezone=auto');
+      const wData = await wRes.json();
+      const cur = wData.current;
+      if (!cur || cur.temperature_2m == null) { el.style.display = 'none'; el.textContent = ''; return; }
+      const icon = WEATHER_ICONS[cur.weather_code] || '🌡️';
+      el.textContent = icon + ' ' + Math.round(cur.temperature_2m) + '°C';
+      el.style.display = 'inline-block';
+    } catch (e) {
+      el.style.display = 'none';
+      el.textContent = '';
+    }
+  }
+
+  function scheduleWeatherUpdate() {
+    clearTimeout(weatherFetchTimer);
+    weatherFetchTimer = setTimeout(updateWeatherBadge, 800);
+  }
+
+  updateWeatherBadge();
+
   // ---------- Generic attachment helpers ----------
   function fileToDataUrl(file) {
     return new Promise((resolve, reject) => {
@@ -2615,6 +2735,78 @@
     renderVoos();
   });
   renderVoos();
+
+  // ---------- Escanear cartão de embarque (código de barras BCBP) ----------
+  // BCBP (IATA Bar Coded Boarding Pass) é um formato de largura fixa — cada
+  // campo mora numa posição de caractere específica dentro do texto lido do
+  // código de barras (normalmente PDF417 em papel, às vezes QR/Aztec em
+  // cartões de embarque digitais). Não existe horário de voo codificado, só
+  // data (como "dia do ano", sem ano) — por isso horaOrigem só recebe a data.
+  function parseBCBP(raw) {
+    if (!raw || raw[0] !== 'M' || raw.length < 53) return null;
+    const pnr = raw.substring(23, 30).trim();
+    const origem = raw.substring(30, 33).trim();
+    const destino = raw.substring(33, 36).trim();
+    const carrier = raw.substring(36, 39).trim();
+    const flightNum = raw.substring(39, 44).trim().replace(/^0+/, '');
+    const julianStr = raw.substring(44, 47).trim();
+    const seat = raw.substring(48, 52).trim();
+    if (!/^[A-Z]{3}$/.test(origem) || !/^[A-Z]{3}$/.test(destino) || !carrier || !flightNum) return null;
+    return { pnr, origem, destino, carrier, flightNum, julianStr, seat };
+  }
+
+  function julianToDateBR(julianStr) {
+    const doy = parseInt(julianStr, 10);
+    if (!doy) return '';
+    const now = new Date();
+    let year = now.getFullYear();
+    const todayDoy = Math.floor((now - new Date(year, 0, 1)) / 86400000) + 1;
+    if (doy < todayDoy - 30) year += 1;
+    const d = new Date(year, 0, doy);
+    return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0');
+  }
+
+  let boardingPassReader = null;
+
+  function closeBoardingPassScanner() {
+    if (boardingPassReader) { boardingPassReader.reset(); boardingPassReader = null; }
+    document.getElementById('boarding-pass-overlay').classList.remove('open');
+  }
+
+  document.getElementById('scan-boarding-pass-btn').addEventListener('click', async () => {
+    const overlay = document.getElementById('boarding-pass-overlay');
+    const video = document.getElementById('boarding-pass-video');
+    overlay.classList.add('open');
+    try {
+      const hints = new Map();
+      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.PDF_417, ZXing.BarcodeFormat.QR_CODE, ZXing.BarcodeFormat.AZTEC]);
+      boardingPassReader = new ZXing.BrowserMultiFormatReader();
+      boardingPassReader.hints = hints;
+      await boardingPassReader.decodeFromConstraints({ video: { facingMode: 'environment' } }, video, (result) => {
+        if (!result) return;
+        const parsed = parseBCBP(result.getText());
+        if (!parsed) return; // não parece cartão de embarque, continua escaneando
+        state.voos.push({
+          id: 'voo_' + uid(),
+          trecho: 'Trecho ' + (state.voos.length + 1),
+          codigo: parsed.carrier + ' ' + parsed.flightNum,
+          origem: parsed.origem,
+          horaOrigem: julianToDateBR(parsed.julianStr),
+          destino: parsed.destino,
+          horaDestino: '',
+          meta: 'Assento ' + (parsed.seat || '—') + (parsed.pnr ? ' · PNR ' + parsed.pnr : '') + ' · via cartão de embarque escaneado'
+        });
+        saveState();
+        renderVoos();
+        closeBoardingPassScanner();
+      });
+    } catch (e) {
+      alert('Não foi possível acessar a câmera. Verifique as permissões do navegador.');
+      closeBoardingPassScanner();
+    }
+  });
+
+  document.getElementById('boarding-pass-cancel-btn').addEventListener('click', closeBoardingPassScanner);
 
   // ---------- Hotéis (editável, lista dinâmica) ----------
   const hoteisListEl = document.getElementById('hoteis-list');
