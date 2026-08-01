@@ -159,6 +159,16 @@
     cursor: pointer;
   }
   .weather-badge:hover { background: rgba(255,255,255,.2); }
+  .trip-alert-badge {
+    display: none;
+    margin-top: 8px;
+    background: var(--accent2);
+    color: #06231f;
+    font-weight: 700;
+    font-size: var(--fs-xs);
+    padding: 6px 12px;
+    border-radius: var(--radius-pill);
+  }
   .sync-status {
     margin-top: 8px;
     font-size: var(--fs-2xs);
@@ -852,6 +862,17 @@
   .expense-item .meta { color: var(--muted); font-size: var(--fs-xs); }
   .expense-item .amt { font-weight: 800; color: var(--accent); flex: none; margin-left: 8px; }
   .cat-pill { font-size: var(--fs-2xs); background: var(--chip-bg); color: var(--accent2); padding: 2px 7px; border-radius: var(--radius-pill); margin-right: 6px; font-weight: 700; }
+  .breakdown-currency-title { font-size: var(--fs-sm); font-weight: 800; color: var(--accent2); margin-bottom: 8px; }
+  .breakdown-group-title { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 700; margin: 12px 0 8px; }
+  .breakdown-group-title:first-child { margin-top: 0; }
+  .breakdown-row { margin-bottom: 8px; }
+  .breakdown-row:last-child { margin-bottom: 0; }
+  .breakdown-row .top { display: flex; justify-content: space-between; gap: 8px; font-size: var(--fs-sm); margin-bottom: 4px; }
+  .breakdown-row .top .name { color: var(--text); font-weight: 600; }
+  .breakdown-row .top .amt { color: var(--muted); font-weight: 700; flex: none; }
+  .breakdown-bar { height: 6px; border-radius: var(--radius-pill); background: var(--card2); overflow: hidden; }
+  .breakdown-bar .fill { height: 100%; background: var(--accent); }
+  .breakdown-bar .fill.alt { background: var(--accent2); }
 
   /* Responsive: collapse sidebar to a top bar on small screens */
   /* ---------------- Barra de abas fixa (navegação nativa no mobile) ---------------- */
@@ -1013,6 +1034,34 @@
   .table-overlay-body table { width: 100%; border-collapse: collapse; font-size: var(--fs-base); background: var(--card); color: var(--text); }
   .table-overlay-body th, .table-overlay-body td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
   .table-overlay-body th { background: var(--card2); font-weight: 700; position: sticky; top: 0; }
+
+  /* ---------------- Exportar/imprimir viagem ---------------- */
+  /* #print-export só existe pra virar a folha impressa: fica escondido na
+     tela normal e só é preenchido/mostrado no momento de imprimir. */
+  #print-export { display: none; }
+  #print-export h1 { font-size: var(--fs-2xl); margin: 0 0 4px; }
+  #print-export h2 { font-size: var(--fs-lg); margin: 22px 0 8px; border-bottom: 2px solid #000; padding-bottom: 4px; break-after: avoid; }
+  #print-export .pe-subtitle { font-size: var(--fs-base); color: #444; margin: 0 0 18px; }
+  #print-export .pe-item { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px dashed #999; break-inside: avoid; }
+  #print-export .pe-item:last-child { border-bottom: none; }
+  #print-export .pe-item .pe-title { font-weight: 700; font-size: var(--fs-md); }
+  #print-export .pe-item .pe-meta { font-size: var(--fs-sm); color: #444; margin-top: 2px; }
+  #print-export .pe-day { margin-bottom: 16px; break-inside: avoid; }
+  #print-export .pe-day .pe-day-title { font-weight: 800; font-size: var(--fs-md); margin-bottom: 6px; }
+  #print-export .pe-empty { font-size: var(--fs-sm); color: #666; font-style: italic; }
+  @media print {
+    /* display:none (não visibility:hidden) pra tirar tudo do fluxo de
+       layout de vez — com visibility o corpo escondido continuava alto e
+       o navegador imprimia páginas em branco extras depois do conteúdo. */
+    body > * { display: none !important; }
+    #print-export {
+      display: block !important;
+      width: 100%;
+      color: #000;
+      background: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+  }
 </style>
 </head>
 <body class="on-home-tab">
@@ -1025,6 +1074,7 @@
     <input type="text" class="subtitle-input" id="trip-subtitle-input" placeholder="Datas / destino">
     <div class="countdown" id="countdown">calculando...</div>
     <a class="weather-badge" id="weather-badge" href="#" target="_blank" rel="noopener"></a>
+    <div class="trip-alert-badge" id="trip-alert-badge"></div>
     <div class="sync-status" id="sync-status">🔄 conectando...</div>
   </div>
   <div class="landmark-strip">
@@ -1254,6 +1304,7 @@
       </div>
       <div class="progress-bar"><div class="fill" id="budget-fill" style="width:0%"></div></div>
       <div class="hint" style="margin-top:8px;">Gasto total: <span id="budget-spent">US$ 0,00</span></div>
+      <div class="hint" id="budget-other-currencies" style="margin-top:2px; display:none;"></div>
     </div>
 
     <div class="card">
@@ -1279,6 +1330,10 @@
           <input type="number" id="expense-amount" step="0.01" placeholder="0,00">
         </div>
       </div>
+      <div class="field" style="max-width:260px;">
+        <label class="field-label">Moeda deste gasto</label>
+        <select id="expense-currency"></select>
+      </div>
       <div class="field">
         <label class="field-label">Descrição (opcional)</label>
         <input type="text" id="expense-desc" placeholder="Ex: Ingresso Universal">
@@ -1286,8 +1341,13 @@
       <button class="btn primary" id="add-expense-btn">+ Adicionar gasto</button>
     </div>
 
+    <div class="card" id="expense-breakdown-card" style="display:none;">
+      <h3>📊 Resumo por categoria</h3>
+      <div id="expense-breakdown-body"></div>
+    </div>
+
     <div class="card">
-      <h3>📊 Gastos lançados</h3>
+      <h3>🧾 Gastos lançados</h3>
       <div id="expense-list"></div>
       <p class="attach-empty" id="expense-empty" style="display:none;">Nenhum gasto lançado ainda.</p>
     </div>
@@ -1417,6 +1477,7 @@
         <button type="button" id="copy-trip-link-btn">🔗 Convidar (esta viagem)</button>
         <button type="button" id="invite-blank-btn">👥 Compartilhar App</button>
         <button type="button" id="show-local-trips-btn">🔎 Viagens salvas neste celular</button>
+        <button type="button" id="export-print-btn">🖨️ Exportar / Imprimir viagem</button>
       </div>
       <div class="trip-code-join">
         <input type="text" id="join-trip-code-input" placeholder="Colar código recebido">
@@ -1426,6 +1487,8 @@
 
   </div>
 </div>
+
+<div id="print-export"></div>
 
 <script>
   // ---------- Código da viagem (isola os dados de cada viagem/pessoa) ----------
@@ -1606,6 +1669,9 @@
     s.expenses = Array.isArray(s.expenses) ? s.expenses : [];
     s.budgetCurrency = s.budgetCurrency || 'USD';
     s.fxForeignCurrency = s.fxForeignCurrency || 'USD';
+    // Gastos lançados antes de existir moeda por item herdam a moeda global
+    // da época (não tinham outra opção quando foram criados).
+    s.expenses.forEach(e => { if (!e.currency) e.currency = s.budgetCurrency; });
     s.checklists = s.checklists && typeof s.checklists === 'object' ? s.checklists : {};
     s.attachments = s.attachments && typeof s.attachments === 'object' ? s.attachments : {};
     if (!s.activeChecklistTraveler || !s.travelers.includes(s.activeChecklistTraveler)) s.activeChecklistTraveler = s.travelers[0];
@@ -2225,6 +2291,65 @@
     tripsModalOverlay.classList.remove('open');
   });
 
+  // ---------- Exportar/imprimir viagem ----------
+  // Monta um documento único (Resumo + Voos + Hotéis + Roteiro) num container
+  // escondido e usa a impressão nativa do navegador — sem biblioteca de PDF
+  // nova, funciona offline, e o cliente escolhe "Salvar como PDF" na tela de
+  // impressão do próprio sistema.
+  function buildPrintExport() {
+    const el = document.getElementById('print-export');
+    const r = state.resumo;
+    let html = `<h1>${escapeHtml(state.tripTitle || 'Minha viagem')}</h1>`;
+    if (state.tripSubtitle) html += `<div class="pe-subtitle">${escapeHtml(state.tripSubtitle)}</div>`;
+
+    html += '<h2>📍 Visão geral</h2>';
+    const resumoRows = [
+      ['Data de embarque', r.embarque], ['Duração', r.duracao], ['Saída', r.saida],
+      ['Chegada', r.chegada], ['Destinos', r.destinos], ['Volta', r.volta]
+    ].filter(([, v]) => v);
+    html += resumoRows.length
+      ? resumoRows.map(([label, v]) => `<div class="pe-item"><span class="pe-title">${escapeHtml(label)}:</span> ${escapeHtml(v)}</div>`).join('')
+      : '<div class="pe-empty">Sem informações preenchidas.</div>';
+
+    html += '<h2>✈️ Voos</h2>';
+    html += state.voos.length
+      ? state.voos.map(v => `
+        <div class="pe-item">
+          <div class="pe-title">${escapeHtml(v.trecho || '')}${v.codigo ? ' · ' + escapeHtml(v.codigo) : ''}</div>
+          <div class="pe-meta">${escapeHtml(v.origem || '?')} (${escapeHtml(v.horaOrigem || '?')}) → ${escapeHtml(v.destino || '?')} (${escapeHtml(v.horaDestino || '?')})</div>
+          ${v.meta ? `<div class="pe-meta">${escapeHtml(v.meta)}</div>` : ''}
+        </div>`).join('')
+      : '<div class="pe-empty">Nenhum voo cadastrado.</div>';
+
+    html += '<h2>🏨 Hotéis</h2>';
+    html += state.hoteis.length
+      ? state.hoteis.map(h => `
+        <div class="pe-item">
+          <div class="pe-title">${escapeHtml(h.nome || 'Hotel')}</div>
+          <div class="pe-meta">${[h.checkin && 'Check-in: ' + h.checkin, h.checkout && 'Check-out: ' + h.checkout].filter(Boolean).map(escapeHtml).join(' · ')}</div>
+          ${h.endereco ? `<div class="pe-meta">${escapeHtml(h.endereco)}</div>` : ''}
+          ${h.confirmacao ? `<div class="pe-meta">Confirmação: ${escapeHtml(h.confirmacao)}</div>` : ''}
+        </div>`).join('')
+      : '<div class="pe-empty">Nenhum hotel cadastrado.</div>';
+    if (state.hotelNotasGerais) html += `<div class="pe-item"><span class="pe-title">Notas gerais:</span> ${escapeHtml(state.hotelNotasGerais)}</div>`;
+
+    html += '<h2>🗺️ Roteiro</h2>';
+    html += state.roteiro.length
+      ? state.roteiro.map(d => `
+        <div class="pe-day">
+          <div class="pe-day-title">${escapeHtml(d.data || '')}${d.tag ? ' · ' + escapeHtml(d.tag) : ''}</div>
+          ${(d.atividades || []).map(a => `<div class="pe-item"><span class="pe-title">${escapeHtml(a.titulo || '')}</span>${a.descricao ? ' — ' + escapeHtml(a.descricao) : ''}</div>`).join('') || '<div class="pe-empty">Sem atividades neste dia.</div>'}
+        </div>`).join('')
+      : '<div class="pe-empty">Nenhum dia no roteiro ainda.</div>';
+
+    el.innerHTML = html;
+  }
+
+  document.getElementById('export-print-btn').addEventListener('click', () => {
+    buildPrintExport();
+    window.print();
+  });
+
   // ---------- Armazenamento de arquivos grandes (PDFs e fotos) via IndexedDB ----------
   // O localStorage tem um limite pequeno (uns 5-10MB) e estourava com PDFs/fotos.
   // IndexedDB tem um limite muito maior, então os arquivos binários ficam aqui,
@@ -2422,7 +2547,7 @@
     el.addEventListener('input', () => {
       state.resumo[key] = el.value;
       saveState();
-      if (key === 'embarque') updateCountdown();
+      if (key === 'embarque') { updateCountdown(); updateTripAlerts(); }
       if (key === 'destinos') scheduleWeatherUpdate();
     });
   });
@@ -2432,6 +2557,7 @@
     });
     updateCountdown();
     updateWeatherBadge();
+    updateTripAlerts();
   }
 
   // ---------- Foto de fundo da barra lateral (editável) ----------
@@ -2607,6 +2733,70 @@
     el.textContent = `Faltam ${days} dias para embarcar`;
   }
   updateCountdown();
+
+  // ---------- Alerta de viagem (voo próximo / check-in) ----------
+  // horaOrigem/horaDestino são texto livre tipo "22/11 · 22:25" (sem ano —
+  // ninguém digita o ano num campo de voo). Como não temos ano, inferimos a
+  // partir do ano da data de embarque (ou do ano atual, na falta dela) e
+  // corrigimos pra o ano seguinte se a data cair muito no passado (viagem de
+  // virada de ano). Se não der pra extrair nem o dia/mês, retorna null — o
+  // voo simplesmente não participa do alerta, sem quebrar nada.
+  function parseVooDateTime(text, referenceDateStr) {
+    if (!text) return null;
+    const m = text.match(/(\d{1,2})\/(\d{1,2})(?:[^\d]*(\d{1,2}):(\d{2}))?/);
+    if (!m) return null;
+    const day = parseInt(m[1], 10);
+    const month = parseInt(m[2], 10) - 1;
+    const hour = m[3] != null ? parseInt(m[3], 10) : 0;
+    const minute = m[4] != null ? parseInt(m[4], 10) : 0;
+    if (day < 1 || day > 31 || month < 0 || month > 11) return null;
+    const refYear = referenceDateStr ? new Date(referenceDateStr + 'T00:00:00').getFullYear() : new Date().getFullYear();
+    let candidate = new Date(refYear, month, day, hour, minute);
+    const now = new Date();
+    if (candidate.getTime() < now.getTime() - 180 * 24 * 60 * 60 * 1000) {
+      candidate = new Date(refYear + 1, month, day, hour, minute);
+    }
+    return candidate;
+  }
+
+  function updateTripAlerts() {
+    const el = document.getElementById('trip-alert-badge');
+    if (!el) return;
+    const now = new Date();
+    const MS_48H = 48 * 60 * 60 * 1000;
+
+    let soonest = null;
+    state.voos.forEach(voo => {
+      const dt = parseVooDateTime(voo.horaOrigem, state.resumo.embarque);
+      if (!dt) return;
+      const diff = dt - now;
+      if (diff > 0 && diff <= MS_48H && (!soonest || dt < soonest.dt)) soonest = { voo, dt };
+    });
+
+    if (soonest) {
+      const diffMs = soonest.dt - now;
+      const hours = Math.floor(diffMs / (1000 * 60 * 60));
+      const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      const label = soonest.voo.trecho || soonest.voo.codigo || 'Seu próximo voo';
+      el.textContent = `✈️ ${label}: decola em ${hours}h${String(minutes).padStart(2, '0')}`;
+      el.style.display = 'inline-block';
+      return;
+    }
+
+    const embarque = state.resumo.embarque;
+    if (embarque) {
+      const diff = new Date(embarque + 'T00:00:00') - now;
+      if (diff > 0 && diff <= MS_48H) {
+        el.textContent = '🛎️ Sua viagem é em breve — confira se o check-in online já abriu.';
+        el.style.display = 'inline-block';
+        return;
+      }
+    }
+
+    el.style.display = 'none';
+    el.textContent = '';
+  }
+  updateTripAlerts();
 
   // ---------- Previsão do tempo (discreta, ao lado da contagem) ----------
   // Usa o campo "Destinos" da aba Início — nunca é armazenada no state/Firebase,
@@ -2799,6 +2989,7 @@
         inputEl.addEventListener('input', () => {
           voo[inputEl.dataset.field] = inputEl.value;
           saveState();
+          if (inputEl.dataset.field === 'horaOrigem') updateTripAlerts();
         });
       });
       card.querySelector('[data-action="del-voo"]').addEventListener('click', async () => {
@@ -2814,6 +3005,7 @@
       setupAttachZone(voo.id, card.querySelector('.attach-zone'), '+ Anexar cartão de embarque', 'Nenhum cartão de embarque anexado ainda.');
       voosListEl.appendChild(card);
     });
+    updateTripAlerts();
   }
   document.getElementById('add-voo-btn').addEventListener('click', () => {
     state.voos.push({ id: 'voo_' + uid(), trecho: '', codigo: '', origem: '', horaOrigem: '', destino: '', horaDestino: '', meta: '' });
@@ -3429,15 +3621,20 @@
   const budgetFillEl = document.getElementById('budget-fill');
   const budgetCurrencySelect = document.getElementById('budget-currency');
   const expenseAmountLabelEl = document.getElementById('expense-amount-label');
+  const expenseCurrencySelect = document.getElementById('expense-currency');
   const expenseTravelerSelect = document.getElementById('expense-traveler');
   const expenseListEl = document.getElementById('expense-list');
   const expenseEmptyEl = document.getElementById('expense-empty');
+  const expenseBreakdownCardEl = document.getElementById('expense-breakdown-card');
+  const expenseBreakdownBodyEl = document.getElementById('expense-breakdown-body');
+  const budgetOtherCurrenciesEl = document.getElementById('budget-other-currencies');
 
   populateCurrencySelect(budgetCurrencySelect, state.budgetCurrency);
+  populateCurrencySelect(expenseCurrencySelect, state.budgetCurrency);
 
   function updateBudgetLabels() {
     budgetTotalLabelEl.textContent = 'Valor total disponível para a viagem (' + state.budgetCurrency + ')';
-    expenseAmountLabelEl.textContent = 'Valor (' + state.budgetCurrency + ')';
+    expenseAmountLabelEl.textContent = 'Valor';
   }
   updateBudgetLabels();
 
@@ -3453,6 +3650,7 @@
     state.budgetCurrency = budgetCurrencySelect.value;
     saveState();
     updateBudgetLabels();
+    populateCurrencySelect(expenseCurrencySelect, state.budgetCurrency);
     renderBudgetSummary();
     renderExpenses();
   });
@@ -3523,9 +3721,21 @@
     });
   }
 
+  // Soma os gastos agrupados por moeda — nunca converte uma moeda pra outra,
+  // já que a cotação do dia do lançamento pode não ser a de hoje.
+  function expenseTotalsByCurrency() {
+    const totals = {};
+    state.expenses.forEach(e => {
+      const cur = e.currency || state.budgetCurrency;
+      totals[cur] = (totals[cur] || 0) + (parseFloat(e.amount) || 0);
+    });
+    return totals;
+  }
+
   function renderBudgetSummary() {
     const total = state.budgetTotal || 0;
-    const spent = state.expenses.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+    const totals = expenseTotalsByCurrency();
+    const spent = totals[state.budgetCurrency] || 0;
     const remaining = total - spent;
     budgetSpentEl.textContent = fmtMoney(spent, state.budgetCurrency);
     budgetRemainingEl.textContent = fmtMoney(remaining, state.budgetCurrency);
@@ -3533,6 +3743,56 @@
     const pct = total > 0 ? Math.min(100, (spent / total) * 100) : 0;
     budgetFillEl.style.width = pct + '%';
     budgetFillEl.style.background = remaining < 0 ? 'var(--danger)' : 'var(--accent)';
+
+    const otherCurrencies = Object.keys(totals).filter(c => c !== state.budgetCurrency);
+    if (otherCurrencies.length) {
+      budgetOtherCurrenciesEl.textContent = '+ ' + otherCurrencies.map(c => fmtMoney(totals[c], c)).join(' + ') + ' em outra(s) moeda(s)';
+      budgetOtherCurrenciesEl.style.display = 'block';
+    } else {
+      budgetOtherCurrenciesEl.style.display = 'none';
+    }
+
+    renderExpenseBreakdown();
+  }
+
+  function breakdownRowsHtml(map, currency, fillClass) {
+    const entries = Object.entries(map).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+    if (!entries.length) return '';
+    const max = entries[0][1];
+    return entries.map(([name, amt]) => `
+      <div class="breakdown-row">
+        <div class="top"><span class="name">${escapeHtml(name)}</span><span class="amt">${fmtMoney(amt, currency)}</span></div>
+        <div class="breakdown-bar"><div class="fill ${fillClass}" style="width:${Math.max(4, (amt / max * 100))}%"></div></div>
+      </div>`).join('');
+  }
+
+  function renderExpenseBreakdown() {
+    if (!state.expenses.length) {
+      expenseBreakdownCardEl.style.display = 'none';
+      return;
+    }
+    expenseBreakdownCardEl.style.display = 'block';
+    const byCurrency = {};
+    state.expenses.forEach(e => {
+      const cur = e.currency || state.budgetCurrency;
+      if (!byCurrency[cur]) byCurrency[cur] = { byCategory: {}, byTraveler: {} };
+      const amt = parseFloat(e.amount) || 0;
+      byCurrency[cur].byCategory[e.category] = (byCurrency[cur].byCategory[e.category] || 0) + amt;
+      byCurrency[cur].byTraveler[e.traveler] = (byCurrency[cur].byTraveler[e.traveler] || 0) + amt;
+    });
+    const currencies = Object.keys(byCurrency).sort((a, b) => (a === state.budgetCurrency ? -1 : b === state.budgetCurrency ? 1 : a.localeCompare(b)));
+    expenseBreakdownBodyEl.innerHTML = currencies.map(cur => {
+      const data = byCurrency[cur];
+      const heading = currencies.length > 1 ? `<div class="breakdown-currency-title">${escapeHtml(cur)}</div>` : '';
+      return `
+        <div>
+          ${heading}
+          <div class="breakdown-group-title">Por categoria</div>
+          ${breakdownRowsHtml(data.byCategory, cur, '')}
+          <div class="breakdown-group-title">Por viajante</div>
+          ${breakdownRowsHtml(data.byTraveler, cur, 'alt')}
+        </div>`;
+    }).join('');
   }
 
   function renderExpenses() {
@@ -3551,7 +3811,7 @@
           <div><span class="cat-pill">${escapeHtml(exp.category)}</span><strong>${escapeHtml(exp.traveler)}</strong></div>
           <div class="meta">${escapeHtml(exp.desc || 'Sem descrição')}</div>
         </div>
-        <div class="amt">${fmtMoney(exp.amount, state.budgetCurrency)}</div>
+        <div class="amt">${fmtMoney(exp.amount, exp.currency || state.budgetCurrency)}</div>
         <button class="btn danger small" data-action="del-exp" style="margin-left:8px;">✕</button>`;
       item.querySelector('[data-action="del-exp"]').addEventListener('click', () => {
         state.expenses.splice(realIdx, 1);
@@ -3567,9 +3827,10 @@
     const traveler = expenseTravelerSelect.value;
     const category = document.getElementById('expense-category').value;
     const amount = parseFloat(document.getElementById('expense-amount').value);
+    const currency = expenseCurrencySelect.value;
     const desc = document.getElementById('expense-desc').value.trim();
     if (!amount || amount <= 0) { alert('Informe um valor válido.'); return; }
-    state.expenses.push({ traveler, category, amount, desc, date: new Date().toISOString() });
+    state.expenses.push({ traveler, category, amount, currency, desc, date: new Date().toISOString() });
     document.getElementById('expense-amount').value = '';
     document.getElementById('expense-desc').value = '';
     saveState();
