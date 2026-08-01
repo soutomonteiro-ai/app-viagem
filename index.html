@@ -2575,9 +2575,11 @@
       if (!cur || cur.temperature_2m == null) { el.style.display = 'none'; el.textContent = ''; return; }
       const icon = WEATHER_ICONS[cur.weather_code] || '🌡️';
       el.textContent = icon + ' ' + Math.round(cur.temperature_2m) + '°C';
-      // Leva pra previsão completa (vários dias, chuva etc.) no AccuWeather,
-      // já que a API usada aqui só devolve o dado atual, sem página pública.
-      el.href = 'https://www.accuweather.com/en/search-locations?query=' + encodeURIComponent(destino);
+      // Leva pra previsão completa (vários dias, chuva etc.) via busca do
+      // Google, que já mostra o widget de clima direto no resultado — mais
+      // rápido e confiável do que abrir um site de terceiro pesado direto
+      // (testado: AccuWeather ficava em branco em conexão mais lenta/móvel).
+      el.href = 'https://www.google.com/search?q=' + encodeURIComponent('previsão do tempo em ' + destino);
       el.style.display = 'inline-block';
     } catch (e) {
       el.style.display = 'none';
