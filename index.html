@@ -133,7 +133,10 @@
     font-size: 11px;
     padding: 6px 10px;
     border-radius: 999px;
+    text-decoration: none;
+    cursor: pointer;
   }
+  .weather-badge:hover { background: rgba(255,255,255,.2); }
   .sync-status {
     margin-top: 8px;
     font-size: 10px;
@@ -1020,7 +1023,7 @@
     <input type="text" class="title-input" id="trip-title-input" placeholder="Nome da viagem">
     <input type="text" class="subtitle-input" id="trip-subtitle-input" placeholder="Datas / destino">
     <div class="countdown" id="countdown">calculando...</div>
-    <span class="weather-badge" id="weather-badge"></span>
+    <a class="weather-badge" id="weather-badge" href="#" target="_blank" rel="noopener"></a>
     <div class="sync-status" id="sync-status">🔄 conectando...</div>
   </div>
   <div class="landmark-strip">
@@ -2548,7 +2551,10 @@
 
   function extractPrimaryDestino(text) {
     if (!text) return '';
-    return text.split(/[+,(]/)[0].trim();
+    // Além de "+", "," e "(", o campo Destinos costuma vir escrito por
+    // extenso ("Orlando e Miami") em vez de só símbolos — sem cobrir isso,
+    // a busca de geocodificação recebia os dois nomes juntos e falhava.
+    return text.split(/\s+e\s+|\s+and\s+|[+,(]/i)[0].trim();
   }
 
   async function updateWeatherBadge() {
@@ -2569,6 +2575,9 @@
       if (!cur || cur.temperature_2m == null) { el.style.display = 'none'; el.textContent = ''; return; }
       const icon = WEATHER_ICONS[cur.weather_code] || '🌡️';
       el.textContent = icon + ' ' + Math.round(cur.temperature_2m) + '°C';
+      // Leva pra previsão completa (vários dias, chuva etc.) no AccuWeather,
+      // já que a API usada aqui só devolve o dado atual, sem página pública.
+      el.href = 'https://www.accuweather.com/en/search-locations?query=' + encodeURIComponent(destino);
       el.style.display = 'inline-block';
     } catch (e) {
       el.style.display = 'none';
