@@ -744,9 +744,17 @@
     padding: 8px 10px;
     font-size: var(--fs-base);
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
     font-family: inherit;
+    text-align: center;
   }
-  textarea { resize: vertical; min-height: 44px; }
+  /* Safari/iOS: date e time nativos ignoram width % e vazam da caixa; força respeitar o container */
+  input[type=date], input[type=time] {
+    -webkit-min-logical-width: 0%;
+  }
+  textarea { resize: vertical; min-height: 44px; text-align: center; }
   label.field-label { font-size: var(--fs-xs); color: var(--muted); display: block; margin-bottom: 3px; font-weight: 600; }
   .field { margin-bottom: 10px; }
   .field-row { display: flex; gap: 8px; }
