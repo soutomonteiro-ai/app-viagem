@@ -104,16 +104,21 @@
     position: absolute;
     top: 8px;
     right: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
     background: rgba(10,16,32,.55);
     color: #fff;
     border: 1px solid rgba(255,255,255,.3);
-    border-radius: var(--radius-sm);
-    padding: 4px 8px;
-    font-size: var(--fs-xs);
+    border-radius: 50%;
+    padding: 0;
     cursor: pointer;
     z-index: 2;
     transition: transform .1s ease, opacity .1s ease, background .15s;
   }
+  .hero-photo-btn svg { width: 16px; height: 16px; flex: none; }
   .hero-photo-btn:hover { background: rgba(10,16,32,.8); }
   .sidebar-hero input.title-input {
     background: transparent;
@@ -750,8 +755,13 @@
     font-family: inherit;
     text-align: center;
   }
-  /* Safari/iOS: date e time nativos ignoram width % e vazam da caixa; força respeitar o container */
+  /* Safari/iOS: o controle nativo de date/time ignora width em % e o ícone
+     de calendário/relógio "vaza" da caixa. appearance:none remove o chrome
+     nativo (inclui o ícone) e força o campo a respeitar exatamente a mesma
+     caixa dos demais inputs; o seletor continua abrindo ao tocar no campo. */
   input[type=date], input[type=time] {
+    -webkit-appearance: none;
+    appearance: none;
     -webkit-min-logical-width: 0%;
   }
   textarea { resize: vertical; min-height: 44px; text-align: center; }
@@ -1109,7 +1119,7 @@
 
 <aside class="sidebar" id="app-sidebar">
   <div class="sidebar-hero" id="sidebar-hero">
-    <button class="hero-photo-btn" id="hero-photo-btn" type="button">📷 Trocar foto</button>
+    <button class="hero-photo-btn" id="hero-photo-btn" type="button" aria-label="Trocar foto" title="Trocar foto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button>
     <input type="file" id="hero-photo-input" accept="image/*">
     <input type="text" class="title-input" id="trip-title-input" placeholder="Nome da viagem">
     <input type="text" class="subtitle-input" id="trip-subtitle-input" placeholder="Datas / destino">
