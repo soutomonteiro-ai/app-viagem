@@ -152,8 +152,8 @@
   }
   .weather-badge {
     display: none;
+    float: right;
     margin-top: 12px;
-    margin-left: 6px;
     background: rgba(255,255,255,.12);
     color: rgba(255,255,255,.85);
     font-weight: 600;
@@ -176,9 +176,13 @@
   }
   .sync-status {
     margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
     font-size: var(--fs-2xs);
     color: #b7c0da;
   }
+  .sync-status-icon { width: 12px; height: 12px; flex: none; color: var(--accent2); }
   .landmark-strip {
     display: flex;
     gap: 6px;
@@ -607,7 +611,7 @@
   .account-modal-section .trip-code-value { font-size: var(--fs-lg); }
   .sidebar {
     background:
-      linear-gradient(180deg, rgba(10,16,32,.55), rgba(19,27,46,.92) 55%, #131b2e 100%),
+      linear-gradient(180deg, rgba(10,16,32,.55), rgba(10,16,32,.3) 45%, rgba(10,16,32,.45) 100%),
       url('https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=600&q=70') center/cover;
   }
 
@@ -2148,7 +2152,7 @@
     fbRef.on('value', (snap) => {
       try {
         const remote = snap.val();
-        if (el) el.textContent = '✅ sincronizado';
+        if (el) el.innerHTML = '<svg class="sync-status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> sincronizado';
         if (!remote) {
           // Banco vazio ainda: manda o estado atual como ponto de partida.
           fbRef.set(state);
@@ -2665,7 +2669,7 @@
     }
     if (data) {
       sidebarHeroEl.style.backgroundImage =
-        `linear-gradient(180deg, rgba(10,16,32,.55), rgba(19,27,46,.92) 55%, #131b2e 100%), url('${data}')`;
+        `linear-gradient(180deg, rgba(10,16,32,.55), rgba(10,16,32,.3) 45%, rgba(10,16,32,.45) 100%), url('${data}')`;
       sidebarHeroEl.style.backgroundSize = 'cover';
       sidebarHeroEl.style.backgroundPosition = 'center';
     } else {
