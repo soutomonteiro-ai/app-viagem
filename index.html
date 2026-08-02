@@ -144,11 +144,12 @@
     display: inline-block;
     margin-top: 12px;
     background: var(--accent);
-    color: #1a1204;
+    color: #131b2e;
     font-weight: 700;
     font-size: var(--fs-xs);
     padding: 6px 12px;
     border-radius: var(--radius-pill);
+    box-shadow: 0 2px 10px rgba(0,0,0,.28);
   }
   .weather-badge {
     display: none;
@@ -182,7 +183,7 @@
     font-size: var(--fs-2xs);
     color: #b7c0da;
   }
-  .sync-status-icon { width: 12px; height: 12px; flex: none; color: var(--accent2); }
+  .sync-status-icon { width: 14px; height: 14px; flex: none; color: #22e07a; filter: drop-shadow(0 0 2px rgba(0,0,0,.5)); }
   .landmark-strip {
     display: flex;
     gap: 6px;
@@ -235,40 +236,44 @@
     gap: 10px;
   }
   .trip-code-box {
-    background: rgba(255,255,255,.06);
-    border: 1px solid rgba(255,255,255,.1);
+    background: rgba(10,16,32,.55);
+    border: 1px solid rgba(255,255,255,.14);
     border-radius: var(--radius-md);
     padding: 12px;
     text-align: left;
     cursor: pointer;
-    transition: background .15s;
+    box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    transition: background .15s, border-color .15s;
   }
-  .trip-code-box:hover { background: rgba(255,255,255,.1); }
+  .trip-code-box:hover { background: rgba(10,16,32,.7); border-color: rgba(255,255,255,.24); }
   .sidebar-new-trip-btn {
     display: block;
     width: 100%;
-    background: rgba(255,255,255,.06);
-    border: 1px solid rgba(255,255,255,.1);
+    background: rgba(10,16,32,.55);
+    border: 1px solid rgba(255,122,61,.4);
     border-radius: var(--radius-md);
     padding: 10px 12px;
     text-align: left;
     font-size: var(--fs-sm);
     font-weight: 700;
-    color: var(--accent);
+    color: #f2f4fb;
     cursor: pointer;
-    transition: background .15s;
+    box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    transition: background .15s, border-color .15s;
   }
-  .sidebar-new-trip-btn:hover { background: rgba(255,255,255,.1); }
+  .sidebar-new-trip-btn .plus-icon { color: var(--accent); margin-right: 2px; }
+  .sidebar-new-trip-btn:hover { background: rgba(10,16,32,.7); border-color: rgba(255,122,61,.6); }
   .trip-code-label {
     font-size: var(--fs-2xs);
     text-transform: uppercase;
     letter-spacing: .04em;
-    color: #8b93ac;
+    color: #f2f4fb;
     font-weight: 700;
     display: flex;
     align-items: center;
     gap: 5px;
   }
+  .trip-code-label .trip-code-icon { color: var(--accent2); }
   .trip-code-icon { width: 13px; height: 13px; flex: none; }
   .trip-code-value {
     font-family: monospace;
@@ -1148,7 +1153,7 @@
     <button data-tab="orcamento"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>Orçamento</button>
   </nav>
   <div class="sidebar-footer">
-    <button type="button" class="sidebar-new-trip-btn" id="new-trip-btn">＋ Iniciar nova viagem</button>
+    <button type="button" class="sidebar-new-trip-btn" id="new-trip-btn"><span class="plus-icon">＋</span> Iniciar nova viagem</button>
     <div class="trip-code-box" id="trip-code-toggle">
       <div class="trip-code-label"><svg class="trip-code-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>Compartilhar e gerenciar viagem</div>
     </div>
