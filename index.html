@@ -85,7 +85,7 @@
   /* ---------------- Sidebar ---------------- */
   .app-wordmark {
     display: block;
-    width: fit-content;
+    width: 100%;
     font-family: 'Onest', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     font-weight: 800;
     font-size: 26px;
@@ -96,10 +96,10 @@
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    padding: 8px 22px;
-    margin: 0 auto 20px;
-    border: 1.5px solid rgba(255,255,255,.55);
-    border-radius: 10px;
+    padding: 10px 12px;
+    margin: 0 0 20px;
+    border: 1.5px solid #5b8def;
+    border-radius: var(--radius-md);
     filter: drop-shadow(0 1px 4px rgba(0,0,0,.35));
     user-select: none;
   }
@@ -956,7 +956,7 @@
   @media (max-width: 760px) {
     body { flex-direction: column; }
     .sidebar { width: 100%; height: auto; position: static; padding: calc(14px + env(safe-area-inset-top)) 14px 14px; }
-    .app-wordmark { font-size: 22px; padding: 6px 18px; margin-bottom: 16px; }
+    .app-wordmark { font-size: 22px; padding: 9px 12px; margin-bottom: 16px; }
     .sidebar-hero { padding: 14px 12px; }
     .landmark-strip { display: none; }
     .sidebar nav { display: none; }
@@ -2839,7 +2839,7 @@
     const diff = tripDate - new Date();
     if (diff <= 0) { el.textContent = 'Boa viagem! ✈️'; return; }
     const days = Math.floor(diff / (1000*60*60*24));
-    el.textContent = `Faltam ${days} dias para embarcar`;
+    el.textContent = `${days} dias para embarcar`;
   }
   updateCountdown();
 
